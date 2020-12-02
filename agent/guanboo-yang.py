@@ -9,6 +9,9 @@ class MyAgent(BaseAgent):
     def step(self, reward, obs):
         def change(num):
             return num // self.cols_n, num % self.cols_n
+        
+        def isValidMove(self, move: tuple) -> list:
+            
 
 
 test = MyAgent()
