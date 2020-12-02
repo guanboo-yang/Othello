@@ -4,7 +4,12 @@ from base_agent import BaseAgent, RandomAgent, HumanAgent
 
 class MyAgent(BaseAgent):
     def __init__(self):
-        pass
+        super(MyAgent, self).__init__()
     
     def step(self, reward, obs):
-        pass
+        def change(num):
+            return num // self.cols_n, num % self.cols_n
+
+
+test = MyAgent()
+test.step(0, {0: 1, 1: 1})
