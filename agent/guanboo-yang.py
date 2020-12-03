@@ -3,10 +3,21 @@ from base_agent import BaseAgent, RandomAgent, HumanAgent
 
 
 class MyAgent(BaseAgent):
+    
     def __init__(self):
         super(MyAgent, self).__init__()
     
-    def step(self, reward, obs): # assume we are 1
+    def step(self, reward:dict, obs:  dict) -> tuple:  # assume we are 1
+        def transfer(obsDic:dict) -> dict:
+            '''
+            Transfer dictionary obsDic into a new dictionary which uses 2D position tuple as its keys instead of 1D index
+
+            Return: Dictionary. A new dictionary with the modified key which in the form of (y,x)
+            where y indicates the col (from 0 to 7) and x represents the row (from 0 to 7)
+            '''
+            return {(i%self.cols_n,i//self.rows_n):obsDic[i] for i in obsDic}
+        obsNew=transfer(obs)    #new dictionary with 2D postion tuple keys
+        
         def change(num):
             return num // self.cols_n, num % self.cols_n
         
@@ -32,7 +43,3 @@ class MyAgent(BaseAgent):
                             tilesToFlip.append((x, y))
             obs[(move[0], move[1])] = 0
             return tilesToFlip
-
-
-test = MyAgent()
-test.step(0, {0: 1, 1: 1})
