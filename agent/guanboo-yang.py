@@ -22,7 +22,7 @@ class MyAgent(BaseAgent):
             '''
             return {(i % self.cols_n, i // self.cols_n):obsDict[i] for i in obsDict}
         
-        obsNew=transfer(obs)    #new dictionary with 2D postion tuple keys
+        obsNew=transfer(obs)    # new dictionary with 2D postion tuple keys
         
         def isOnBoard(self, x, y) -> bool:
             return 0 <= x < self.cols_n and 0 <= y < self.rows_n
