@@ -28,17 +28,17 @@ class MyAgent(BaseAgent):
         def isOnBoard(x, y) -> bool:
             return 0 <= x < self.cols_n and 0 <= y < self.rows_n
         
-        def isValidMove(obs:dict, move: tuple) -> list:
+        def isValidMove(obs:dict, move: tuple, color=colorNum) -> list:
             if not isOnBoard(move[0], move[1]) or obs[(move[0], move[1])] != 0:
                 return []
-            obs[(move[0], move[1])] = colorNum
+            obs[(move[0], move[1])] = color
             dirs = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]]
             tilesToFlip = []
             for xdir, ydir in dirs:
                 x, y = move[0]+xdir, move[1]+ydir
-                while isOnBoard(x, y) and obs[(x, y)] == -colorNum:
+                while isOnBoard(x, y) and obs[(x, y)] == -color:
                     x += xdir; y += ydir
-                    if isOnBoard(x, y) and obs[(x, y)] == colorNum:
+                    if isOnBoard(x, y) and obs[(x, y)] == color:
                         while True:
                             x -= xdir; y -= ydir
                             if x == move[0] and y == move[1]:
@@ -73,8 +73,8 @@ class MyAgent(BaseAgent):
             
             return False
         
-        def getValidMovesDict(obs) -> dict:
-            return {(x, y):isValidMove(obs, (x, y)) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y))}
+        def getValidMovesDict(obs, color=colorNum) -> dict:
+            return {(x, y):isValidMove(obs, (x, y), color) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y), color)}
         
         def countOpenRate(flip:tuple, obs:dict) -> int:
             count = 0
@@ -88,18 +88,33 @@ class MyAgent(BaseAgent):
         def openRateDict(obs) -> dict:
             validMovesDict = getValidMovesDict(obs)
             openRateDict = {}
+            
             # try remove bad move
             for movek, movev in validMovesDict.copy().items():
+                
+                # flip the X position
                 for flip in movev:
                     if isBadMove(flip):
                         validMovesDict.pop(movek, None)
                         if validMovesDict == {}:
                             validMovesDict[movek] = movev
                 
+                # don't place X position
                 if isBadMove(movek):
                     validMovesDict.pop(movek, None)
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
+                
+                # don't let the opponent play good move
+                obsTest = obsNew.copy()
+                obsTest[(movek)] = colorNum
+                opponentMoves = getValidMovesDict(obsTest, -colorNum)
+                for move in opponentMoves:
+                    if isOnCorner(move):
+                        validMovesDict.pop(movek, None)
+                        if validMovesDict == {}:
+                            validMovesDict[movek] = movev
+                
             
             for move in validMovesDict:
                 count = 0
@@ -110,7 +125,8 @@ class MyAgent(BaseAgent):
             return openRateDict
         
         sortedOpenRateDict = {k:v for k, v in sorted(openRateDict(obsNew).items(), key=lambda x: x[1])}
-        x, y = next(iter(sortedOpenRateDict))
+        try: x, y = next(iter(sortedOpenRateDict))
+        except StopIteration: return
         if hereIsPriority(obsNew):
             x, y = hereIsPriority(obsNew)
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
