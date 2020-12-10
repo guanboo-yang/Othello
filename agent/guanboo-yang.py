@@ -47,9 +47,6 @@ class MyAgent(BaseAgent):
             obs[(move[0], move[1])] = 0
             return tilesToFlip
         
-        def getValidMoves(obs) -> list:
-            return [(x, y) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y))]
-        
         # Corner position
         def isOnCorner(move):
             return move[0] in {0, self.cols_n-1} and move[1] in {0, self.rows_n-1}
@@ -58,13 +55,8 @@ class MyAgent(BaseAgent):
         def isOnSide(move):
             return move[0] in {0, self.cols_n-1} or move[1] in {0, self.rows_n-1}
         
-        # C position
-        def isBadMove(move):
-            return move[0] in {1, self.cols_n-2} and move[1] in {1, self.rows_n-2}
-        
-        def getAgentMove(obs):
-            possibleMoves = getValidMoves(obs)
-            
+        def hereIsPriority(obs):
+            possibleMoves = list(getValidMovesDict(obs).keys())
             # Corner position first
             for move in possibleMoves:
                 if isOnCorner(move):
@@ -75,8 +67,34 @@ class MyAgent(BaseAgent):
                 if isOnSide(move):
                     return move
             
-            return possibleMoves[0]
+            return False
         
-        x, y = getAgentMove(obsNew)
+        def getValidMovesDict(obs) -> dict:
+            return {(x, y):isValidMove(obs, (x, y)) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y))}
+        
+        def countOpenRate(flip:tuple, obs:dict) -> int:
+            count = 0
+            dirs = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]]
+            for xdir, ydir in dirs:
+                x, y = flip[0]+xdir, flip[1]+ydir
+                if isOnBoard(x, y) and obs[(x, y)] == 0:
+                    count += 1
+            return count
+        
+        def openRateDict(obs) -> dict:
+            validMovesDict = getValidMovesDict(obs)
+            openRateDict = {}
+            for move in validMovesDict:
+                count = 0
+                for flip in validMovesDict[move]:
+                    count += countOpenRate(flip, obs)
+                openRateDict[move] = count
+            return openRateDict
+        
+        sortedOpenRateDict = {k:v for k, v in sorted(openRateDict(obsNew).items(), key=lambda x: x[1])}
+        print(sortedOpenRateDict)
+        x, y = next(iter(sortedOpenRateDict))
+        if hereIsPriority(obsNew):
+            x, y = hereIsPriority(obsNew)
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
