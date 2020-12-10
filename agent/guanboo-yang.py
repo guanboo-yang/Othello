@@ -1,6 +1,7 @@
 import pygame
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
 from agent.base_agent import BaseAgent, RandomAgent, HumanAgent
+import random
 
 class MyAgent(BaseAgent):
     
@@ -124,7 +125,10 @@ class MyAgent(BaseAgent):
             
             return openRateDict
         
-        sortedOpenRateDict = {k:v for k, v in sorted(openRateDict(obsNew).items(), key=lambda x: x[1])}
+        keys = list(openRateDict(obsNew).keys())
+        random.shuffle(keys)
+        randomDict = {key:openRateDict(obsNew)[key] for key in keys}
+        sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
         try: x, y = next(iter(sortedOpenRateDict))
         except StopIteration: return
         if hereIsPriority(obsNew):
