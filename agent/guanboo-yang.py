@@ -76,7 +76,7 @@ class MyAgent(BaseAgent):
                     return move
             
             return possibleMoves[0]
-        print(getAgentMove(obsNew), pygame.USEREVENT)
         
-        return getAgentMove(obsNew), pygame.USEREVENT
+        x, y = getAgentMove(obsNew)
+        return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
