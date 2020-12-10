@@ -55,6 +55,10 @@ class MyAgent(BaseAgent):
         def isOnSide(move):
             return move[0] in {0, self.cols_n-1} or move[1] in {0, self.rows_n-1}
         
+        # X position
+        def isBadMove(move):
+            return move[0] in {1, self.cols_n-2} and move[1] in {1, self.rows_n-2}
+        
         def hereIsPriority(obs):
             possibleMoves = list(getValidMovesDict(obs).keys())
             # Corner position first
@@ -84,15 +88,28 @@ class MyAgent(BaseAgent):
         def openRateDict(obs) -> dict:
             validMovesDict = getValidMovesDict(obs)
             openRateDict = {}
+            # try remove bad move
+            for movek, movev in validMovesDict.copy().items():
+                for flip in movev:
+                    if isBadMove(flip):
+                        validMovesDict.pop(movek, None)
+                        if validMovesDict == {}:
+                            validMovesDict[movek] = movev
+                
+                if isBadMove(movek):
+                    validMovesDict.pop(movek, None)
+                    if validMovesDict == {}:
+                        validMovesDict[movek] = movev
+            
             for move in validMovesDict:
                 count = 0
                 for flip in validMovesDict[move]:
                     count += countOpenRate(flip, obs)
                 openRateDict[move] = count
+            
             return openRateDict
         
         sortedOpenRateDict = {k:v for k, v in sorted(openRateDict(obsNew).items(), key=lambda x: x[1])}
-        print(sortedOpenRateDict)
         x, y = next(iter(sortedOpenRateDict))
         if hereIsPriority(obsNew):
             x, y = hereIsPriority(obsNew)
