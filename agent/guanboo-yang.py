@@ -60,20 +60,6 @@ class MyAgent(BaseAgent):
         def isBadMove(move):
             return move[0] in {1, self.cols_n-2} and move[1] in {1, self.rows_n-2}
         
-        def hereIsPriority(obs):
-            possibleMoves = list(getValidMovesDict(obs).keys())
-            # Corner position first
-            for move in possibleMoves:
-                if isOnCorner(move):
-                    return move
-            
-            # Side position next
-            for move in possibleMoves:
-                if isOnSide(move):
-                    return move
-            
-            return False
-        
         def getValidMovesDict(obs, color=colorNum) -> dict:
             return {(x, y):isValidMove(obs, (x, y), color) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y), color)}
         
@@ -93,7 +79,7 @@ class MyAgent(BaseAgent):
             # try remove bad move
             for movek, movev in validMovesDict.copy().items():
                 
-                # flip the X position
+                # don't flip X position
                 for flip in movev:
                     if isBadMove(flip):
                         validMovesDict.pop(movek, None)
@@ -108,14 +94,14 @@ class MyAgent(BaseAgent):
                 
                 # don't let the opponent play good move
                 obsTest = obsNew.copy()
+                opponentMovesbef = getValidMovesDict(obsTest, -colorNum)
                 obsTest[(movek)] = colorNum
-                opponentMoves = getValidMovesDict(obsTest, -colorNum)
-                for move in opponentMoves:
+                opponentMovesaft = getValidMovesDict(obsTest, -colorNum)
+                for move in [i for i in opponentMovesaft if i not in opponentMovesbef]:
                     if isOnCorner(move):
                         validMovesDict.pop(movek, None)
                         if validMovesDict == {}:
                             validMovesDict[movek] = movev
-                
             
             for move in validMovesDict:
                 count = 0
@@ -125,14 +111,34 @@ class MyAgent(BaseAgent):
             
             return openRateDict
         
+        def hereIsPriority(obs):
+            possibleMoves = list(openRateDict(obs).keys())
+            # Corner position first
+            for move in possibleMoves:
+                if isOnCorner(move):
+                    return move
+            
+            # Side position next
+            for move in possibleMoves:
+                if isOnSide(move):
+                    return move
+            
+            return False
+        
+        # rondom choice
         keys = list(openRateDict(obsNew).keys())
         random.shuffle(keys)
         randomDict = {key:openRateDict(obsNew)[key] for key in keys}
+        
+        # sorted with openrate
         sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
         try: x, y = next(iter(sortedOpenRateDict))
         except StopIteration: return
+        
+        # priority move
         if hereIsPriority(obsNew):
             x, y = hereIsPriority(obsNew)
+        
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
 
