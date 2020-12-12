@@ -48,13 +48,80 @@ class MyAgent(BaseAgent):
             obs[(move[0], move[1])] = 0
             return tilesToFlip
         
+        def makeMove(color, move, obs):
+            tilesToFlip = isValidMove(obs, move, color)
+            if tilesToFlip:
+                obs[move] = color
+                for tile in tilesToFlip:
+                    obs[tile] = color
+            return tilesToFlip
+        
         # Corner position
         def isOnCorner(move):
             return move[0] in {0, self.cols_n-1} and move[1] in {0, self.rows_n-1}
         
         # Side position
         def isOnSide(move):
-            return move[0] in {0, self.cols_n-1} or move[1] in {0, self.rows_n-1}
+            return (move[0] in {0, self.cols_n-1} or move[1] in {0, self.rows_n-1}) and not isOnCorner(move)
+        
+        def right(move):
+            return (move[0]+1, move[1])
+        
+        def left(move):
+            return (move[0]-1, move[1])
+        
+        def up(move):
+            return (move[0], move[1]+1)
+        
+        def down(move):
+            return (move[0], move[1]-1)
+        
+        def isGoodSideMove(move, color) -> bool:
+            obsTemp = obsNew.copy()
+            if not isOnSide(move): return False
+            makeMove(color, move, obsTemp)
+            if move[1] in {0, self.rows_n-1}:
+                lmove = rmove = move
+                while not isOnCorner(lmove) and obsTemp[left(lmove)] == color: lmove = left(lmove)
+                while not isOnCorner(rmove) and obsTemp[right(rmove)] == color: rmove = right(rmove)
+                if isOnCorner(lmove) or isOnCorner(rmove): return True
+                if obsTemp[left(lmove)] == -color and obsTemp[right(rmove)] == -color: return True
+                if obsTemp[left(lmove)] == 0 and obsTemp[right(rmove)] == 0: 
+                    lmove = left(lmove); rmove = right(rmove)
+                    if isOnCorner(lmove) and isOnCorner(rmove): return True
+                    if isOnCorner(lmove):
+                        if obsTemp[right(rmove)] == color: return False
+                        if obsTemp[right(rmove)] == -color: return True
+                        else: return True
+                    if isOnCorner(rmove):
+                        if obsTemp[left(lmove)] == color: return False
+                        if obsTemp[left(lmove)] == -color: return True
+                        else: return True
+                    if obsTemp[left(lmove)] == color or obsTemp[right(rmove)] == color: return False
+                    if obsTemp[left(lmove)] == -color or obsTemp[right(rmove)] == -color: return True
+                    else: return True
+                else: return False
+            else:
+                umove = dmove = move
+                while not isOnCorner(umove) and obsTemp[up(umove)] == color: umove = up(umove)
+                while not isOnCorner(dmove) and obsTemp[down(dmove)] == color: dmove = down(dmove)
+                if isOnCorner(umove) or isOnCorner(dmove): return True
+                if obsTemp[up(umove)] == -color and obsTemp[down(dmove)] == -color: return True
+                if obsTemp[up(umove)] == 0 and obsTemp[down(dmove)] == 0:
+                    umove = up(umove); dmove = down(dmove)
+                    if isOnCorner(umove) and isOnCorner(dmove): return True
+                    if isOnCorner(umove):
+                        if obsTemp[down(dmove)] == color: return False
+                        if obsTemp[down(dmove)] == -color: return True
+                        else: return True
+                    if isOnCorner(dmove):
+                        if obsTemp[up(umove)] == color: return False
+                        if obsTemp[up(umove)] == -color: return True
+                        else: return True
+                    if obsTemp[up(umove)] == color or obsTemp[down(dmove)] == color: return False
+                    if obsTemp[up(umove)] == -color or obsTemp[down(dmove)] == -color: return True
+                    else: return True
+                else: return False
         
         # X position
         def isBadMove(move):
@@ -63,7 +130,6 @@ class MyAgent(BaseAgent):
         def getValidMovesDict(obs, color=colorNum) -> dict:
             return {(x, y):isValidMove(obs, (x, y), color) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y), color)}
         
-                
         def getValidMovesList(obs, color=colorNum) -> list:
             return [(x, y) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y), color)]
         
@@ -109,6 +175,11 @@ class MyAgent(BaseAgent):
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
                 
+                if isOnSide(movek) and not isGoodSideMove(movek, colorNum):
+                    validMovesDict.pop(movek, None)
+                    if validMovesDict == {}:
+                        validMovesDict[movek] = movev
+                
                 # don't let the opponent play good move
                 obsTest = obsNew.copy()
                 opponentMovesbef = getValidMovesDict(obsTest, -colorNum)
@@ -125,7 +196,6 @@ class MyAgent(BaseAgent):
                 for flip in validMovesDict[move]:
                     count += countOpenRate(flip, obs)
                 openRateDict[move] = count
-            
             return openRateDict
         
         def hereIsPriority(obs, color):
@@ -137,20 +207,10 @@ class MyAgent(BaseAgent):
             
             # Side position next
             for move in possibleMoves:
-                if isOnSide(move):
+                if isGoodSideMove(move, colorNum):
                     return move
             
             return False
-        
-        # isWinner(obs) -> int
-        
-        def makeMove(color, move, obs):
-            tilesToFlip = isValidMove(obs, move, color)
-            if tilesToFlip:
-                obs[move] = color
-                for tile in tilesToFlip:
-                    obs[tile] = color
-            return tilesToFlip
         
         def aßmaxNode(alpha, beta, height, color):
             bestop, bestScore = [-1,-1], alpha
