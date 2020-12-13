@@ -13,16 +13,18 @@
     - student_id: b09902059
     - github: [Alex-0718](https://github.com/Alex-0718)
 ### Report
-- v1.1: We complete the basic agent with:
+rate: the rate is MyAgent against RandomAgent
+- v1.1: We complete the basic agent with: (rate: 70 ~ 80)
     - geting available actions
     - corner position first
     - side position second
     - X position last.
-- v1.2:
+- v1.2: (rate: 83)
     - v1.2.1: We update the agent with OPENRATE theorem
     - v1.2.4: Add available actions to random agent
-- v1.3: We add ALPHA-BETA ALGORITHM to the last ten moves
-- v1.4: Add more side position rules
+- v1.3: We add ALPHA-BETA ALGORITHM to the last ten moves (rate: 88)
+- v1.4: Add more side position rules (rate: 92)
+    - v1.4.1: Fix a thinking mistake (rate: 98)
 
 ---
 
