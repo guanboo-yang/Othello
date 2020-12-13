@@ -78,8 +78,6 @@ $ python3 arena.py --agent1 guanboo-yang.HumanAgent --agent2 guanboo-yang.MyAgen
 |
 [Homework introduction](https://www.youtube.com/watch?v=MG1AsisCY2g&list=PL8RRW7e03_x2FqpgLxWehpbytFKRPy6ba&index=2)
 |
-
-|
 [Code introduction](https://www.youtube.com/watch?v=3ySyE1IMbnA&list=PL8RRW7e03_x2FqpgLxWehpbytFKRPy6ba&index=3)
 |
 [PDB Introduction](https://www.youtube.com/watch?v=3ySyE1IMbnA&list=PL8RRW7e03_x2FqpgLxWehpbytFKRPy6ba&index=4)
