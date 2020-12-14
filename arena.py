@@ -33,7 +33,7 @@ def main(play_ground, agent1, agent2, rounds):
                     except (utils.ValueOutOfRange, utils.InvalidAction) as e:
                         # print("invalid action! retry!")
                         pass
-                    except utils.NoAvailableAction:
+                    except (utils.NoAvailableAction, TypeError):
                         # print("ignore black action")
                         run_iter += 1
                         break
@@ -47,7 +47,7 @@ def main(play_ground, agent1, agent2, rounds):
                     except (utils.ValueOutOfRange, utils.InvalidAction) as e:
                         # print("invalid action! retry!") 
                         pass
-                    except utils.NoAvailableAction:
+                    except (utils.NoAvailableAction, TypeError):
                         # print("ignore white action")
                         run_iter += 1
                         break
@@ -57,7 +57,13 @@ def main(play_ground, agent1, agent2, rounds):
 
 
         if game.winner == -1:
+            print("winner is black", end=" | ")
             n_black_wins += 1
+        if game.winner == 1:
+            print("winner is white", end=" | ")
+        print('black', game.scores[-1], 'white', game.scores[1], end=" | ")
+        print(f'rate {n_black_wins / (i+1):.2f}')
+
 
     print ('Your win rate is', n_black_wins / rounds)
 
