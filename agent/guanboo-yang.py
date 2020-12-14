@@ -7,6 +7,7 @@ class MyAgent(BaseAgent):
     
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 0
     
     def step(self, reward:dict, obs:dict) -> tuple:
         colorDict = {"black": -1, "white": 1, "empty": 0}
@@ -75,52 +76,91 @@ class MyAgent(BaseAgent):
             return (move[0], move[1]-1)
         
         # Side move is good or bad
-        def isGoodSideMove(move, color) -> bool:
-            obsTemp = obsNew.copy()
+        def isGoodSideMove(move, color, obsTemp) -> bool:
             if not isOnSide(move): return False
             makeMove(color, move, obsTemp)
-            if move[1] in {0, self.rows_n-1}:
-                lmove = rmove = move
-                while not isOnCorner(lmove) and obsTemp[left(lmove)] == color: lmove = left(lmove)
-                while not isOnCorner(rmove) and obsTemp[right(rmove)] == color: rmove = right(rmove)
-                if isOnCorner(lmove) or isOnCorner(rmove): return True
-                if obsTemp[left(lmove)] == -color and obsTemp[right(rmove)] == -color: return True
-                if obsTemp[left(lmove)] == 0 and obsTemp[right(rmove)] == 0: 
-                    lmove = left(lmove); rmove = right(rmove)
-                    if isOnCorner(lmove) and isOnCorner(rmove): return True
-                    if isOnCorner(lmove):
-                        if obsTemp[right(rmove)] == color: return False
-                        if obsTemp[right(rmove)] == -color: return True
-                        else: return True
-                    if isOnCorner(rmove):
-                        if obsTemp[left(lmove)] == color: return False
-                        if obsTemp[left(lmove)] == -color: return True
-                        else: return True
-                    if obsTemp[left(lmove)] == color or obsTemp[right(rmove)] == color: return False
-                    if obsTemp[left(lmove)] == -color or obsTemp[right(rmove)] == -color: return True
+            if move[1] in {0, self.rows_n-1}: func = [right, left]
+            else: func = [up, down]
+            move1 = move2 = move
+            while not isOnCorner(move1) and obsTemp[func[0](move1)] == color: move1 = func[0](move1)
+            while not isOnCorner(move2) and obsTemp[func[1](move2)] == color: move2 = func[1](move2)
+            if isOnCorner(move1) or isOnCorner(move2): return True
+            if obsTemp[func[0](move1)] == -color and obsTemp[func[1](move2)] == -color: return True
+            if obsTemp[func[0](move1)] == 0 and obsTemp[func[1](move2)] == 0: 
+                move1 = func[0](move1); move2 = func[1](move2)
+                if isOnCorner(move1) and isOnCorner(move2): return True
+                if isOnCorner(move1):
+                    if obsTemp[func[1](move2)] == color: return False
+                    if obsTemp[func[1](move2)] == -color: return True
                     else: return True
-                else: return False
+                if isOnCorner(move2):
+                    if obsTemp[func[0](move1)] == color: return False
+                    if obsTemp[func[0](move1)] == -color: return True
+                    else: return True
+                if obsTemp[func[0](move1)] == color or obsTemp[func[1](move2)] == color: return False
+                if obsTemp[func[0](move1)] == -color or obsTemp[func[1](move2)] == -color: return True
+                else: return True
             else:
-                umove = dmove = move
-                while not isOnCorner(umove) and obsTemp[up(umove)] == color: umove = up(umove)
-                while not isOnCorner(dmove) and obsTemp[down(dmove)] == color: dmove = down(dmove)
-                if isOnCorner(umove) or isOnCorner(dmove): return True
-                if obsTemp[up(umove)] == -color and obsTemp[down(dmove)] == -color: return True
-                if obsTemp[up(umove)] == 0 and obsTemp[down(dmove)] == 0:
-                    umove = up(umove); dmove = down(dmove)
-                    if isOnCorner(umove) and isOnCorner(dmove): return True
-                    if isOnCorner(umove):
-                        if obsTemp[down(dmove)] == color: return False
-                        if obsTemp[down(dmove)] == -color: return True
-                        else: return True
-                    if isOnCorner(dmove):
-                        if obsTemp[up(umove)] == color: return False
-                        if obsTemp[up(umove)] == -color: return True
-                        else: return True
-                    if obsTemp[up(umove)] == color or obsTemp[down(dmove)] == color: return False
-                    if obsTemp[up(umove)] == -color or obsTemp[down(dmove)] == -color: return True
+                if obsTemp[func[0](move1)] == -color:
+                    if isGoodSideMove(func[1](move2), -color, obsTemp) or isOnCorner(func[1](move2)): return False
                     else: return True
-                else: return False
+                if obsTemp[func[1](move2)] == -color:
+                    if isGoodSideMove(func[0](move1), -color, obsTemp) or isOnCorner(func[0](move1)): return False
+                    else: return True
+            # if move[1] in {0, self.rows_n-1}:
+            #     lmove = rmove = move
+            #     while not isOnCorner(lmove) and obsTemp[left(lmove)] == color: lmove = left(lmove)
+            #     while not isOnCorner(rmove) and obsTemp[right(rmove)] == color: rmove = right(rmove)
+            #     if isOnCorner(lmove) or isOnCorner(rmove): return True
+            #     if obsTemp[left(lmove)] == -color and obsTemp[right(rmove)] == -color: return True
+            #     if obsTemp[left(lmove)] == 0 and obsTemp[right(rmove)] == 0: 
+            #         lmove = left(lmove); rmove = right(rmove)
+            #         if isOnCorner(lmove) and isOnCorner(rmove): return True
+            #         if isOnCorner(lmove):
+            #             if obsTemp[right(rmove)] == color: return False
+            #             if obsTemp[right(rmove)] == -color: return True
+            #             else: return True
+            #         if isOnCorner(rmove):
+            #             if obsTemp[left(lmove)] == color: return False
+            #             if obsTemp[left(lmove)] == -color: return True
+            #             else: return True
+            #         if obsTemp[left(lmove)] == color or obsTemp[right(rmove)] == color: return False
+            #         if obsTemp[left(lmove)] == -color or obsTemp[right(rmove)] == -color: return True
+            #         else: return True
+            #     else:
+            #         if obsTemp[left(lmove)] == -color:
+            #             if isGoodSideMove(right(rmove), -color, obsTemp) or isOnCorner(right(rmove)): return False
+            #             else: return True
+            #         if obsTemp[right(rmove)] == -color:
+            #             if isGoodSideMove(left(lmove), -color, obsTemp) or isOnCorner(left(lmove)): return False
+            #             else: return True
+            # else:
+            #     umove = dmove = move
+            #     while not isOnCorner(umove) and obsTemp[up(umove)] == color: umove = up(umove)
+            #     while not isOnCorner(dmove) and obsTemp[down(dmove)] == color: dmove = down(dmove)
+            #     if isOnCorner(umove) or isOnCorner(dmove): return True
+            #     if obsTemp[up(umove)] == -color and obsTemp[down(dmove)] == -color: return True
+            #     if obsTemp[up(umove)] == 0 and obsTemp[down(dmove)] == 0:
+            #         umove = up(umove); dmove = down(dmove)
+            #         if isOnCorner(umove) and isOnCorner(dmove): return True
+            #         if isOnCorner(umove):
+            #             if obsTemp[down(dmove)] == color: return False
+            #             if obsTemp[down(dmove)] == -color: return True
+            #             else: return True
+            #         if isOnCorner(dmove):
+            #             if obsTemp[up(umove)] == color: return False
+            #             if obsTemp[up(umove)] == -color: return True
+            #             else: return True
+            #         if obsTemp[up(umove)] == color or obsTemp[down(dmove)] == color: return False
+            #         if obsTemp[up(umove)] == -color or obsTemp[down(dmove)] == -color: return True
+            #         else: return True
+            #     else:
+            #         if obsTemp[up(umove)] == -color:
+            #             if isGoodSideMove(down(dmove), -color, obsTemp) or isOnCorner(down(dmove)): return False
+            #             else: return True
+            #         if obsTemp[down(dmove)] == -color:
+            #             if isGoodSideMove(up(umove), -color, obsTemp) or isOnCorner(up(umove)): return False
+            #             else: return True
         
         # X position
         def isBadMove(move, obs):
@@ -162,6 +202,14 @@ class MyAgent(BaseAgent):
             # else: return 0
             return scores[1] - scores[-1]
         
+        def actionCap(move, color):
+            obsCap = obsNew.copy()
+            _ = makeMove(color, move, obsCap)
+            agentMove = len(getValidMovesList(obsCap, color))
+            opponentMove = len(getValidMovesList(obsCap, -color))
+            actionVal = agentMove - opponentMove
+            return actionVal
+        
         def openRateDict(obs:dict, color) -> dict:
             validMovesDict = getValidMovesDict(obs, color)
             openRateDict = {}
@@ -184,7 +232,8 @@ class MyAgent(BaseAgent):
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
                 
-                if isOnSide(movek) and not isGoodSideMove(movek, colorNum):
+                obsTemp = obsNew.copy()
+                if isOnSide(movek) and not isGoodSideMove(movek, colorNum, obsTemp):
                     validMovesDict.pop(movek, None)
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
@@ -205,6 +254,7 @@ class MyAgent(BaseAgent):
                 count = 0
                 for flip in validMovesDict[move]:
                     count += countOpenRate(flip, obs)
+                count -= actionCap(move, color) * 0.2
                 openRateDict[move] = count
             return openRateDict
         
@@ -216,72 +266,110 @@ class MyAgent(BaseAgent):
                     return move
             
             # Side position next
+            obsTemp = obsNew.copy()
             for move in possibleMoves:
-                if isGoodSideMove(move, colorNum):
+                if isGoodSideMove(move, colorNum, obsTemp):
                     return move
             
             return False
         
-        def aßmaxNode(alpha, beta, height, color):
-            bestop, bestScore = [-1,-1], alpha
-            if height <= 0:
-                bestScore = isWinner(obsAB)
-                return bestop, bestScore
-            elif not getValidMovesDict(obsAB, color):
-                bestop, bestScore = aßminNode(alpha, beta, height-1, -color)
-                return  [-1,-1], bestScore
-            m = alpha
-            moves = getValidMovesDict(obsAB, color)
-            for move in moves:
-                flips = makeMove(color, move, obsAB)
-                _, score =aßminNode(m, beta, height-1, -color)
-
-                obsAB[move] = 0
-                otherTile = -color
-                for tile in flips:
-                    obsAB[tile] = otherTile
-
-                if score > m:
-                    m=score
-                    bestop = move[:]
-                    bestScore = m
-                if m >= beta:
-                    return bestop, bestScore
-                return bestop, bestScore
+        def minimax(height, color, obs):
+            obsMM = obs.copy()
+            if color == -1:
+                bestOp, bestScore = (-1, -1), 99
+                if height <= 0:
+                    bestScore = isWinner(obsMM)
+                    return bestOp, bestScore
+                elif not getValidMovesDict(obsMM, color):
+                    bestOp, bestScore = minimax(height-1, -color, obsMM)
+                    return  (-1,-1), bestScore
+                moves = getValidMovesDict(obsMM, color)
+                for move in moves:
+                    _ = makeMove(color, move, obsMM)
+                    _, score = minimax(height-1, -color, obsMM)
+                    if score < bestScore:
+                        bestScore = score
+                        bestOp = move[:]
+                return bestOp, bestScore
+            if color == 1:
+                bestOp, bestScore = (-1, -1), -99
+                if height <= 0:
+                    bestScore = isWinner(obsMM)
+                    return bestOp, bestScore
+                elif not getValidMovesDict(obsMM, color):
+                    bestOp, bestScore = minimax(height-1, -color, obsMM)
+                    return  (-1,-1), bestScore
+                moves = getValidMovesDict(obsMM, color)
+                for move in moves:
+                    _ = makeMove(color, move, obsMM)
+                    _, score = minimax(height-1, -color, obsMM)
+                    if score > bestScore:
+                        bestScore = score
+                        bestOp = move[:]
+                return bestOp, bestScore
         
-        def aßminNode(alpha, beta, height, color):
-            bestop, bestScore = [-1,-1], beta
-            if height <= 0:
-                bestScore = isWinner(obsAB)
-                return bestop, bestScore
-            elif not getValidMovesDict(obsAB, color):
-                bestop, bestScore = aßmaxNode(alpha, beta, height-1, -color)
-                return [-1,-1], bestScore
-            m = beta
-            moves = getValidMovesDict(obsAB, color)
-            for move in moves:
-                flips = makeMove(color, move, obsAB)
-                _, score = aßmaxNode(alpha, m, height-1, -color)
+        # def aßmaxNode(alpha, beta, height, color, obsAB):
+        #     bestop, bestScore = [-1,-1], alpha
+        #     if height <= 0:
+        #         bestScore = isWinner(obsAB)
+        #         return bestop, bestScore
+        #     elif not getValidMovesDict(obsAB, color):
+        #         bestop, bestScore = aßminNode(alpha, beta, height-1, -color, obsAB)
+        #         return  [-1,-1], bestScore
+        #     m = alpha
+        #     moves = getValidMovesDict(obsAB, color)
+        #     for move in moves:
+        #         flips = makeMove(color, move, obsAB)
+        #         _, score =aßminNode(m, beta, height-1, -color, obsAB)
 
-                obsAB[move] = 0
-                otherTile = -color
-                for tile in flips:
-                    obsAB[tile] = otherTile
+        #         # obsAB[move] = 0
+        #         # otherTile = -color
+        #         # for tile in flips:
+        #         #     obsAB[tile] = otherTile
 
-                if score < m:
-                    m=score
-                    bestop = move[:]
-                    bestScore = m
-                if m <= alpha:
-                    return bestop, bestScore
-            return bestop, bestScore
+        #         if score > m:
+        #             m=score
+        #             bestop = move[:]
+        #             bestScore = m
+        #         if m >= beta:
+        #             return bestop, bestScore
+        #         return bestop, bestScore
+        
+        # def aßminNode(alpha, beta, height, color, obsAB):
+        #     obsAB = obsNew.copy()
+        #     bestop, bestScore = [-1,-1], beta
+        #     if height <= 0:
+        #         bestScore = isWinner(obsAB)
+        #         return bestop, bestScore
+        #     elif not getValidMovesDict(obsAB, color):
+        #         bestop, bestScore = aßmaxNode(alpha, beta, height-1, -color, obsAB)
+        #         return [-1,-1], bestScore
+        #     m = beta
+        #     moves = getValidMovesDict(obsAB, color)
+        #     for move in moves:
+        #         flips = makeMove(color, move, obsAB)
+        #         _, score = aßmaxNode(alpha, m, height-1, -color, obsAB)
 
-        def getComputerMove(agentColor):
-            if agentColor == 1:
-                move, _ = aßmaxNode(-99, 99, 12, agentColor)
-            else:
-                move, _ = aßminNode(-99, 99, 12, agentColor)
-            return move
+        #         # obsAB[move] = 0
+        #         # otherTile = -color
+        #         # for tile in flips:
+        #         #     obsAB[tile] = otherTile
+
+        #         if score < m:
+        #             m=score
+        #             bestop = move[:]
+        #             bestScore = m
+        #         if m <= alpha:
+        #             return bestop, bestScore
+        #     return bestop, bestScore
+
+        # def getComputerMove(agentColor):
+        #     obsAB = obsNew.copy()
+        #     if agentColor == 1:
+        #         move, _ = aßmaxNode(-99, 99, self.depth, agentColor, obsAB)
+        #     else:
+        #         move, _ = aßminNode(-99, 99, self.depth, agentColor, obsAB)
+        #     return move
         
         def countSteps(obs):
             step = 0
@@ -299,7 +387,7 @@ class MyAgent(BaseAgent):
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
         
-        elif stepNum <= 51:
+        elif stepNum <= (63 - self.depth):
             # rondom choice
             MovesDict = openRateDict(obsNew, colorNum)
             keys = list(MovesDict.keys())
@@ -308,21 +396,21 @@ class MyAgent(BaseAgent):
             
             # sorted with openrate
             sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
+            # print(sortedOpenRateDict)
             try: x, y = next(iter(sortedOpenRateDict))
             except StopIteration: return
             
             # priority move
-            if hereIsPriority(obsNew, colorNum):
-                x, y = hereIsPriority(obsNew, colorNum)
+            priorityMoves = hereIsPriority(obsNew, colorNum)
+            # print(priorityMoves)
+            if priorityMoves:
+                x, y = priorityMoves
             
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
         else:
-            obsAB = obsNew.copy()
-            x, y = getComputerMove(colorNum)
+            x, y = minimax(self.depth, colorNum, obsNew)[0]
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
-
-
 
 
 class RandomAgent(BaseAgent):
@@ -334,15 +422,6 @@ class RandomAgent(BaseAgent):
         colorNum = colorDict[self.color]
         
         def transfer(obsDict:dict) -> dict:
-            '''
-            obsDict: dict
-                key: 0 ~ 63
-                val: [-1, 0, 1] (black, empty, white)
-            
-            return : dict
-                key: (x, y), where (7, 0) represents the top right
-                val: [-1, 0, 1] (black, empty, white)
-            '''
             return {(i % self.cols_n, i // self.cols_n):obsDict[i] for i in obsDict}
         
         obsNew=transfer(obs)    # new dictionary with 2D postion tuple keys
@@ -374,7 +453,8 @@ class RandomAgent(BaseAgent):
         
         possibleMoves = getValidMovesList(obsNew)
         random.shuffle(possibleMoves)
-        x, y = possibleMoves[0]
+        try: x, y = possibleMoves[0]
+        except: return
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
 class CornerAgent(BaseAgent):
@@ -386,15 +466,6 @@ class CornerAgent(BaseAgent):
         colorNum = colorDict[self.color]
         
         def transfer(obsDict:dict) -> dict:
-            '''
-            obsDict: dict
-                key: 0 ~ 63
-                val: [-1, 0, 1] (black, empty, white)
-            
-            return : dict
-                key: (x, y), where (7, 0) represents the top right
-                val: [-1, 0, 1] (black, empty, white)
-            '''
             return {(i % self.cols_n, i // self.cols_n):obsDict[i] for i in obsDict}
         
         obsNew=transfer(obs)    # new dictionary with 2D postion tuple keys
@@ -442,8 +513,24 @@ class CornerAgent(BaseAgent):
             if isBadMove(move, obsNew):
                 possibleMoves.remove(move)
                 possibleMoves.append(move)
-        x, y = possibleMoves[0]
+        try: x, y = possibleMoves[0]
+        except: return
         for move in possibleMoves:
             if isOnCorner(move):
                 x, y = move
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
+
+class MyAgent2(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 5
+    
+class MyAgent3(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 10
+    
+class MyAgent4(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 15
