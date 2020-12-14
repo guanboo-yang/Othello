@@ -301,9 +301,10 @@ class MyAgent(BaseAgent):
         
         elif stepNum <= 51:
             # rondom choice
-            keys = list(openRateDict(obsNew, colorNum).keys())
+            MovesDict = openRateDict(obsNew, colorNum)
+            keys = list(MovesDict.keys())
             random.shuffle(keys)
-            randomDict = {key:openRateDict(obsNew, colorNum)[key] for key in keys}
+            randomDict = {key:MovesDict[key] for key in keys}
             
             # sorted with openrate
             sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
