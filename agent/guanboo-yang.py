@@ -57,6 +57,13 @@ class MyAgent(BaseAgent):
                     obs[tile] = color
             return tilesToFlip
         
+        def fakeMakeMove(color, move, obs):
+            tilesToFlip = isValidMove(obs, move, color)
+            obs[move] = color
+            for tile in tilesToFlip:
+                obs[tile] = color
+            return tilesToFlip
+        
         # Corner position
         def isOnCorner(move):
             return move[0] in {0, self.cols_n-1} and move[1] in {0, self.rows_n-1}
@@ -75,92 +82,36 @@ class MyAgent(BaseAgent):
         def down(move):
             return (move[0], move[1]-1)
         
-        # Side move is good or bad
-        def isGoodSideMove(move, color, obsTemp) -> bool:
-            if not isOnSide(move): return False
-            makeMove(color, move, obsTemp)
-            if move[1] in {0, self.rows_n-1}: func = [right, left]
-            else: func = [up, down]
-            move1 = move2 = move
-            while not isOnCorner(move1) and obsTemp[func[0](move1)] == color: move1 = func[0](move1)
-            while not isOnCorner(move2) and obsTemp[func[1](move2)] == color: move2 = func[1](move2)
-            if isOnCorner(move1) or isOnCorner(move2): return True
-            if obsTemp[func[0](move1)] == -color and obsTemp[func[1](move2)] == -color: return True
-            if obsTemp[func[0](move1)] == 0 and obsTemp[func[1](move2)] == 0: 
-                move1 = func[0](move1); move2 = func[1](move2)
-                if isOnCorner(move1) and isOnCorner(move2): return True
-                if isOnCorner(move1):
-                    if obsTemp[func[1](move2)] == color: return False
-                    if obsTemp[func[1](move2)] == -color: return True
-                    else: return True
-                if isOnCorner(move2):
-                    if obsTemp[func[0](move1)] == color: return False
-                    if obsTemp[func[0](move1)] == -color: return True
-                    else: return True
-                if obsTemp[func[0](move1)] == color or obsTemp[func[1](move2)] == color: return False
-                if obsTemp[func[0](move1)] == -color or obsTemp[func[1](move2)] == -color: return True
-                else: return True
+        def sideMoveLevel(move, color, obs) -> int:
+            obsTemp = obs.copy()
+            if obsTemp[move] != 0: return False
+            if not isOnSide(move): return 5
+            flips = fakeMakeMove(color, move, obsTemp)
+            for flip in flips:
+                if isBadMove(flip, obsTemp): return 5
+            func = [right, left] if move[1] in {0, 7} else [up, down]
+            moves = [move, move]
+            while not isOnCorner(moves[0]) and obsTemp[func[0](moves[0])] == color: moves[0] = func[0](moves[0])
+            while not isOnCorner(moves[1]) and obsTemp[func[1](moves[1])] == color: moves[1] = func[1](moves[1])
+            if isOnCorner(moves[0]) or isOnCorner(moves[1]): return 2
+            if obsTemp[func[0](moves[0])] == -color and obsTemp[func[1](moves[1])] == -color: return 3
+            if obsTemp[func[0](moves[0])] == 0 and obsTemp[func[1](moves[1])] == 0: 
+                moves[0] = func[0](moves[0]); moves[1] = func[1](moves[1])
+                if isOnCorner(moves[0]) and isOnCorner(moves[1]):
+                    for flip in flips:
+                        if isOnSide(flip): return 1
+                    else: return 3
+                if sideMoveLevel(moves[0], -color, obsTemp) <= 3: return 4
+                if sideMoveLevel(moves[1], -color, obsTemp) <= 3: return 4
+                else:
+                    for flip in flips:
+                        if isOnSide(flip): return 1
+                    else: return 3
             else:
-                if obsTemp[func[0](move1)] == -color:
-                    if isGoodSideMove(func[1](move2), -color, obsTemp) or isOnCorner(func[1](move2)): return False
-                    else: return True
-                if obsTemp[func[1](move2)] == -color:
-                    if isGoodSideMove(func[0](move1), -color, obsTemp) or isOnCorner(func[0](move1)): return False
-                    else: return True
-            # if move[1] in {0, self.rows_n-1}:
-            #     lmove = rmove = move
-            #     while not isOnCorner(lmove) and obsTemp[left(lmove)] == color: lmove = left(lmove)
-            #     while not isOnCorner(rmove) and obsTemp[right(rmove)] == color: rmove = right(rmove)
-            #     if isOnCorner(lmove) or isOnCorner(rmove): return True
-            #     if obsTemp[left(lmove)] == -color and obsTemp[right(rmove)] == -color: return True
-            #     if obsTemp[left(lmove)] == 0 and obsTemp[right(rmove)] == 0: 
-            #         lmove = left(lmove); rmove = right(rmove)
-            #         if isOnCorner(lmove) and isOnCorner(rmove): return True
-            #         if isOnCorner(lmove):
-            #             if obsTemp[right(rmove)] == color: return False
-            #             if obsTemp[right(rmove)] == -color: return True
-            #             else: return True
-            #         if isOnCorner(rmove):
-            #             if obsTemp[left(lmove)] == color: return False
-            #             if obsTemp[left(lmove)] == -color: return True
-            #             else: return True
-            #         if obsTemp[left(lmove)] == color or obsTemp[right(rmove)] == color: return False
-            #         if obsTemp[left(lmove)] == -color or obsTemp[right(rmove)] == -color: return True
-            #         else: return True
-            #     else:
-            #         if obsTemp[left(lmove)] == -color:
-            #             if isGoodSideMove(right(rmove), -color, obsTemp) or isOnCorner(right(rmove)): return False
-            #             else: return True
-            #         if obsTemp[right(rmove)] == -color:
-            #             if isGoodSideMove(left(lmove), -color, obsTemp) or isOnCorner(left(lmove)): return False
-            #             else: return True
-            # else:
-            #     umove = dmove = move
-            #     while not isOnCorner(umove) and obsTemp[up(umove)] == color: umove = up(umove)
-            #     while not isOnCorner(dmove) and obsTemp[down(dmove)] == color: dmove = down(dmove)
-            #     if isOnCorner(umove) or isOnCorner(dmove): return True
-            #     if obsTemp[up(umove)] == -color and obsTemp[down(dmove)] == -color: return True
-            #     if obsTemp[up(umove)] == 0 and obsTemp[down(dmove)] == 0:
-            #         umove = up(umove); dmove = down(dmove)
-            #         if isOnCorner(umove) and isOnCorner(dmove): return True
-            #         if isOnCorner(umove):
-            #             if obsTemp[down(dmove)] == color: return False
-            #             if obsTemp[down(dmove)] == -color: return True
-            #             else: return True
-            #         if isOnCorner(dmove):
-            #             if obsTemp[up(umove)] == color: return False
-            #             if obsTemp[up(umove)] == -color: return True
-            #             else: return True
-            #         if obsTemp[up(umove)] == color or obsTemp[down(dmove)] == color: return False
-            #         if obsTemp[up(umove)] == -color or obsTemp[down(dmove)] == -color: return True
-            #         else: return True
-            #     else:
-            #         if obsTemp[up(umove)] == -color:
-            #             if isGoodSideMove(down(dmove), -color, obsTemp) or isOnCorner(down(dmove)): return False
-            #             else: return True
-            #         if obsTemp[down(dmove)] == -color:
-            #             if isGoodSideMove(up(umove), -color, obsTemp) or isOnCorner(up(umove)): return False
-            #             else: return True
+                i = 1 if obsTemp[func[0](moves[0])] == -color else 0
+                if isOnCorner(func[i](moves[i])): return 5
+                if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 3): return 4
+                else: return 3
         
         # X position
         def isBadMove(move, obs):
@@ -232,8 +183,12 @@ class MyAgent(BaseAgent):
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
                 
-                obsTemp = obsNew.copy()
-                if isOnSide(movek) and not isGoodSideMove(movek, colorNum, obsTemp):
+                if isOnSide(movek) and sideMoveLevel(movek, color, obs) == 5:
+                    validMovesDict.pop(movek, None)
+                    if validMovesDict == {}:
+                        validMovesDict[movek] = movev
+                
+                if isOnSide(movek) and sideMoveLevel(movek, color, obs) == 4:
                     validMovesDict.pop(movek, None)
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
@@ -259,16 +214,19 @@ class MyAgent(BaseAgent):
             return openRateDict
         
         def hereIsPriority(obs, color):
-            possibleMoves = list(openRateDict(obs, color).keys())
+            possibleMoves = getValidMovesList(obs, color)
             # Corner position first
             for move in possibleMoves:
                 if isOnCorner(move):
                     return move
             
             # Side position next
-            obsTemp = obsNew.copy()
             for move in possibleMoves:
-                if isGoodSideMove(move, colorNum, obsTemp):
+                if isOnSide(move) and sideMoveLevel(move, color, obs) == 1:
+                    return move
+                if isOnSide(move) and sideMoveLevel(move, color, obs) == 2:
+                    return move
+                if isOnSide(move) and sideMoveLevel(move, color, obs) == 3:
                     return move
             
             return False
@@ -307,69 +265,6 @@ class MyAgent(BaseAgent):
                         bestScore = score
                         bestOp = move[:]
                 return bestOp, bestScore
-        
-        # def aßmaxNode(alpha, beta, height, color, obsAB):
-        #     bestop, bestScore = [-1,-1], alpha
-        #     if height <= 0:
-        #         bestScore = isWinner(obsAB)
-        #         return bestop, bestScore
-        #     elif not getValidMovesDict(obsAB, color):
-        #         bestop, bestScore = aßminNode(alpha, beta, height-1, -color, obsAB)
-        #         return  [-1,-1], bestScore
-        #     m = alpha
-        #     moves = getValidMovesDict(obsAB, color)
-        #     for move in moves:
-        #         flips = makeMove(color, move, obsAB)
-        #         _, score =aßminNode(m, beta, height-1, -color, obsAB)
-
-        #         # obsAB[move] = 0
-        #         # otherTile = -color
-        #         # for tile in flips:
-        #         #     obsAB[tile] = otherTile
-
-        #         if score > m:
-        #             m=score
-        #             bestop = move[:]
-        #             bestScore = m
-        #         if m >= beta:
-        #             return bestop, bestScore
-        #         return bestop, bestScore
-        
-        # def aßminNode(alpha, beta, height, color, obsAB):
-        #     obsAB = obsNew.copy()
-        #     bestop, bestScore = [-1,-1], beta
-        #     if height <= 0:
-        #         bestScore = isWinner(obsAB)
-        #         return bestop, bestScore
-        #     elif not getValidMovesDict(obsAB, color):
-        #         bestop, bestScore = aßmaxNode(alpha, beta, height-1, -color, obsAB)
-        #         return [-1,-1], bestScore
-        #     m = beta
-        #     moves = getValidMovesDict(obsAB, color)
-        #     for move in moves:
-        #         flips = makeMove(color, move, obsAB)
-        #         _, score = aßmaxNode(alpha, m, height-1, -color, obsAB)
-
-        #         # obsAB[move] = 0
-        #         # otherTile = -color
-        #         # for tile in flips:
-        #         #     obsAB[tile] = otherTile
-
-        #         if score < m:
-        #             m=score
-        #             bestop = move[:]
-        #             bestScore = m
-        #         if m <= alpha:
-        #             return bestop, bestScore
-        #     return bestop, bestScore
-
-        # def getComputerMove(agentColor):
-        #     obsAB = obsNew.copy()
-        #     if agentColor == 1:
-        #         move, _ = aßmaxNode(-99, 99, self.depth, agentColor, obsAB)
-        #     else:
-        #         move, _ = aßminNode(-99, 99, self.depth, agentColor, obsAB)
-        #     return move
         
         def countSteps(obs):
             step = 0
