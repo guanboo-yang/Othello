@@ -25,6 +25,7 @@ rate: (RandomAgent) (CornerAgent)
 - v1.3: We add ALPHA-BETA ALGORITHM to the last ten moves (rate: 88)
 - v1.4: Add more side position rules (rate: 92)
     - v1.4.1: Fix a thinking mistake (rate: 98) (rate: 87)
+    - v1.4.2: Add more side position rules (rate: 99) (rate: 93)
 
 ---
 
