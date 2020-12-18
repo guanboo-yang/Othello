@@ -36,7 +36,7 @@ def main(play_ground, agent1, agent2, rounds):
                         pass
                     except (utils.NoAvailableAction, TypeError):
                         # print("ignore black action")
-                        run_iter += 1
+                        # run_iter += 1
                         break
             else:
                 obs = play_ground.get_game_state()
@@ -50,7 +50,7 @@ def main(play_ground, agent1, agent2, rounds):
                         pass
                     except (utils.NoAvailableAction, TypeError):
                         # print("ignore white action")
-                        run_iter += 1
+                        # run_iter += 1
                         break
             run_iter += 1 
         

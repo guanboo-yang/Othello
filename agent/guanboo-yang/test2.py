@@ -28,8 +28,10 @@ def sideMoveLevel(move, color, obs) -> int:
             for flip in flips:
                 if isOnSide(flip): return 1
             else: return 3
-        if sideMoveLevel(moves[0], -color, obsTemp) <= 3: return 4
-        if sideMoveLevel(moves[1], -color, obsTemp) <= 3: return 4
+        if sideMoveLevel(moves[0], -color, obsTemp) == 3: return 4
+        if sideMoveLevel(moves[0], -color, obsTemp) <= 2: return 5
+        if sideMoveLevel(moves[1], -color, obsTemp) == 3: return 4
+        if sideMoveLevel(moves[1], -color, obsTemp) <= 2: return 5
         else:
             for flip in flips:
                 if isOnSide(flip): return 1
@@ -37,19 +39,94 @@ def sideMoveLevel(move, color, obs) -> int:
     else:
         i = 1 if (obsTemp[func[0](moves[0])] == -color) else 0
         if isOnCorner(func[i](moves[i])): return 5
-        if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 3): return 4
+        if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) == 5): return 2
+        if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) == 3): return 4
+        if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 2): return 5
         else: return 3
 
-obs =  {(0, 0):  0, (0, 1):  0, (0, 2):  1, (0, 3): -1, (0, 4):  0, (0, 5):  0, (0, 6): -1, (0, 7):  0, 
-        (1, 0):  0, (1, 1):  0, (1, 2):  0, (1, 3):  0, (1, 4):  0, (1, 5):  0, (1, 6):  0, (1, 7):  0, 
-        (2, 0):  1, (2, 1):  0, (2, 2):  0, (2, 3):  0, (2, 4):  0, (2, 5):  0, (2, 6):  0, (2, 7):  0, 
-        (3, 0): -1, (3, 1):  0, (3, 2):  0, (3, 3):  0, (3, 4):  0, (3, 5):  0, (3, 6):  0, (3, 7):  0, 
-        (4, 0): -1, (4, 1):  0, (4, 2):  0, (4, 3):  0, (4, 4):  0, (4, 5):  0, (4, 6):  0, (4, 7):  0, 
-        (5, 0):  0, (5, 1):  0, (5, 2):  0, (5, 3):  0, (5, 4):  0, (5, 5):  0, (5, 6):  0, (5, 7):  0, 
-        (6, 0):  0, (6, 1):  0, (6, 2):  0, (6, 3):  0, (6, 4):  0, (6, 5):  0, (6, 6):  0, (6, 7):  0, 
-        (7, 0):  0, (7, 1):  0, (7, 2):  0, (7, 3):  0, (7, 4):  0, (7, 5):  0, (7, 6):  0, (7, 7):  0}
+obs =  {(0, 0):  0, (0, 1):  0, (0, 2):  1, (0, 3):  1, (0, 4):  0, (0, 5): -1, (0, 6): -1, (0, 7):  0, 
+        (1, 0):  0, (1, 1):  0, (1, 2):  1, (1, 3): -1, (1, 4): -1, (1, 5):  0, (1, 6):  0, (1, 7):  0, 
+        (2, 0):  1, (2, 1):  1, (2, 2): -1, (2, 3): -1, (2, 4): -1, (2, 5):  1, (2, 6):  0, (2, 7):  0, 
+        (3, 0):  0, (3, 1): -1, (3, 2): -1, (3, 3):  1, (3, 4): -1, (3, 5):  1, (3, 6):  0, (3, 7):  0, 
+        (4, 0): -1, (4, 1): -1, (4, 2): -1, (4, 3):  1, (4, 4):  1, (4, 5):  1, (4, 6):  0, (4, 7):  0, 
+        (5, 0): -1, (5, 1): -1, (5, 2):  1, (5, 3): -1, (5, 4):  1, (5, 5):  1, (5, 6): -1, (5, 7):  0, 
+        (6, 0): -1, (6, 1):  0, (6, 2):  1, (6, 3):  1, (6, 4): -1, (6, 5):  1, (6, 6):  1, (6, 7):  0, 
+        (7, 0):  0, (7, 1): -1, (7, 2): -1, (7, 3):  0, (7, 4):  0, (7, 5):  0, (7, 6):  0, (7, 7):  0}
 
+def isStonerSide(obsIN, color):
+    obs = obsIN.copy()
+    move = (0, 0)
+    if obs[move] != 0: return False
+    # funcs = [right, left, up, down]
+    returnVal = right(down(move))
+    if obs[right(down(move))] != 0: return False
+    _ = makeMove(color, returnVal, obs)
+    if diagWithSameColor(obs, color, move):
+        moveEnd = (move[0], move[1]+7)
+        if obs[moveEnd] != 0: return False
+        moveEnd = up(moveEnd)
+        while obs[moveEnd] == -color: moveEnd = up(moveEnd)
+        if obs[moveEnd] == 0: moveEnd = up(moveEnd)
+        else: return False
+        while obs[moveEnd] == color: moveEnd = up(moveEnd)
+        if obs[moveEnd] != 0: return False
+        if up(moveEnd) != move: return False
+        return returnVal
+    else: return False
+    
+    
+    # moves = [(0, 0), (0, 7), (7, 0), (7, 7)]
+    # funcs = [[right, down], [right, up], [left, down], [left, up]]
+    # for i in range(4):
+    #     returnMove1 = funcs[i][0](funcs[i][1](moves[i]))
+    #     if obs[moves[i]] == 0:
+    #         for func in funcs[i]:
+    #             move = func(moves[i])
+    #             returnMove2 = move
+    #             if obs[move] == 0:
+    #                 move = func(move)
+    #                 while obs[move] == color: move = func(move)
+    #                 if obs[move] == 0: move = func(move)
+    #                 while obs[move] == -color: move = func(move)
+    #                 if isOnCorner(func(move)): 
+    #                     x, y = returnMove1, returnMove2
+    
+    
+    # for move in [(0, 0), (0, 7), (7, 0), (7, 7)]:
+    #     func = 
+    #     if obs[move] == 0:
+    #         for func in [right, left, up, down]:
+    #             if isOnBoard(func(move)) and obs[func(move)] == 0:
+    #                 move = func(move)
+    #                 returnMove = move
+    #                 while obs[move] == color: move = func(move)
+    #                 if obs[move] == 0: move = func(move)
+    #                 while obs[move] == -color: move = func(move)
+    #                 if isOnCorner(func(move)): return returnMove
 
+# def stoner(obs, color):
+#     pos = isStonerSide(obs, color)
+#     if pos:
+        
+
+# def pine(obs):
+#     a = obs.values()
+#     ll = []
+#     for i in range(8):
+#         ll.append(list(a)[8*i:8*i+8])
+#     for x in range(8):
+#         for y in range(8):
+#             if ll[x][y] == -1: ll[x][y] = 2
+#     for i in range(8):
+#         print(*ll[i])
+
+# pine(obs)
+
+def diagWithSameColor(obs, color, move):
+    if move[0] == move[1]:
+        return all(obs[(x, y)] == color for x in range(1, 7) for y in range(1, 7) if x == y)
+    if move[0] + move[1] == 7:
+        return all(obs[(x, y)] == color for x in range(1, 7) for y in range(1, 7) if x + y == 7)
 
 def makeMove(color, move, obs):
     tilesToFlip = isValidMove(obs, move, color)
@@ -61,12 +138,15 @@ def makeMove(color, move, obs):
 # directions
 def right(move):
     return (move[0]+1, move[1])
+
 def left(move):
     return (move[0]-1, move[1])
+
 def up(move):
-    return (move[0], move[1]+1)
-def down(move):
     return (move[0], move[1]-1)
+
+def down(move):
+    return (move[0], move[1]+1)
 
 # Corner position
 def isOnCorner(move):
@@ -111,8 +191,11 @@ def pineapple(obs):
 def isOnBoard(x, y) -> bool:
     return 0 <= x < 8 and 0 <= y < 8
 
-colorNum, x, y = [int(i) for i in input().split()]
-print(sideMoveLevel((x, y), colorNum, obs))
+# colorNum, x, y = [int(i) for i in input().split()]
+# print(sideMoveLevel((x, y), colorNum, obs))
+
+colorNum = int(input())
+print(isStonerSide(obs, colorNum))
 
 
     #     if isOnCorner(moves[0]):
