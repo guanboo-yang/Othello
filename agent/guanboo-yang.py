@@ -58,6 +58,13 @@ class MyAgent(BaseAgent):
                     obs[tile] = color
             return tilesToFlip
         
+        def fakeMakeMove(color, move, obs):
+            tilesToFlip = isValidMove(obs, move, color)
+            obs[move] = color
+            for tile in tilesToFlip:
+                obs[tile] = color
+            return tilesToFlip
+        
         # Corner position
         def isOnCorner(move):
             return move[0] in {0, self.cols_n-1} and move[1] in {0, self.rows_n-1}
@@ -76,53 +83,36 @@ class MyAgent(BaseAgent):
         def down(move):
             return (move[0], move[1]-1)
         
-        # Side move is good or bad
-        def isGoodSideMove(move, color) -> bool:
-            obsTemp = obsNew.copy()
-            if not isOnSide(move): return False
-            makeMove(color, move, obsTemp)
-            if move[1] in {0, self.rows_n-1}:
-                lmove = rmove = move
-                while not isOnCorner(lmove) and obsTemp[left(lmove)] == color: lmove = left(lmove)
-                while not isOnCorner(rmove) and obsTemp[right(rmove)] == color: rmove = right(rmove)
-                if isOnCorner(lmove) or isOnCorner(rmove): return True
-                if obsTemp[left(lmove)] == -color and obsTemp[right(rmove)] == -color: return True
-                if obsTemp[left(lmove)] == 0 and obsTemp[right(rmove)] == 0: 
-                    lmove = left(lmove); rmove = right(rmove)
-                    if isOnCorner(lmove) and isOnCorner(rmove): return True
-                    if isOnCorner(lmove):
-                        if obsTemp[right(rmove)] == color: return False
-                        if obsTemp[right(rmove)] == -color: return True
-                        else: return True
-                    if isOnCorner(rmove):
-                        if obsTemp[left(lmove)] == color: return False
-                        if obsTemp[left(lmove)] == -color: return True
-                        else: return True
-                    if obsTemp[left(lmove)] == color or obsTemp[right(rmove)] == color: return False
-                    if obsTemp[left(lmove)] == -color or obsTemp[right(rmove)] == -color: return True
-                    else: return True
-                else: return False
+        def sideMoveLevel(move, color, obs) -> int:
+            obsTemp = obs.copy()
+            if obsTemp[move] != 0: return False
+            if not isOnSide(move): return 5
+            flips = fakeMakeMove(color, move, obsTemp)
+            for flip in flips:
+                if isBadMove(flip, obsTemp): return 5
+            func = [right, left] if move[1] in {0, 7} else [up, down]
+            moves = [move, move]
+            while not isOnCorner(moves[0]) and obsTemp[func[0](moves[0])] == color: moves[0] = func[0](moves[0])
+            while not isOnCorner(moves[1]) and obsTemp[func[1](moves[1])] == color: moves[1] = func[1](moves[1])
+            if isOnCorner(moves[0]) or isOnCorner(moves[1]): return 2
+            if obsTemp[func[0](moves[0])] == -color and obsTemp[func[1](moves[1])] == -color: return 3
+            if obsTemp[func[0](moves[0])] == 0 and obsTemp[func[1](moves[1])] == 0: 
+                moves[0] = func[0](moves[0]); moves[1] = func[1](moves[1])
+                if isOnCorner(moves[0]) and isOnCorner(moves[1]):
+                    for flip in flips:
+                        if isOnSide(flip): return 1
+                    else: return 3
+                if sideMoveLevel(moves[0], -color, obsTemp) <= 3: return 4
+                if sideMoveLevel(moves[1], -color, obsTemp) <= 3: return 4
+                else:
+                    for flip in flips:
+                        if isOnSide(flip): return 1
+                    else: return 3
             else:
-                umove = dmove = move
-                while not isOnCorner(umove) and obsTemp[up(umove)] == color: umove = up(umove)
-                while not isOnCorner(dmove) and obsTemp[down(dmove)] == color: dmove = down(dmove)
-                if isOnCorner(umove) or isOnCorner(dmove): return True
-                if obsTemp[up(umove)] == -color and obsTemp[down(dmove)] == -color: return True
-                if obsTemp[up(umove)] == 0 and obsTemp[down(dmove)] == 0:
-                    umove = up(umove); dmove = down(dmove)
-                    if isOnCorner(umove) and isOnCorner(dmove): return True
-                    if isOnCorner(umove):
-                        if obsTemp[down(dmove)] == color: return False
-                        if obsTemp[down(dmove)] == -color: return True
-                        else: return True
-                    if isOnCorner(dmove):
-                        if obsTemp[up(umove)] == color: return False
-                        if obsTemp[up(umove)] == -color: return True
-                        else: return True
-                    if obsTemp[up(umove)] == color or obsTemp[down(dmove)] == color: return False
-                    if obsTemp[up(umove)] == -color or obsTemp[down(dmove)] == -color: return True
-                    else: return True
-                else: return False
+                i = 1 if obsTemp[func[0](moves[0])] == -color else 0
+                if isOnCorner(func[i](moves[i])): return 5
+                if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 3): return 4
+                else: return 3
         
         # X position
         def isBadMove(move, obs):
@@ -164,6 +154,14 @@ class MyAgent(BaseAgent):
             # else: return 0
             return scores[colorNum] - scores[-colorNum]
         
+        def actionCap(move, color):
+            obsCap = obsNew.copy()
+            _ = makeMove(color, move, obsCap)
+            agentMove = len(getValidMovesList(obsCap, color))
+            opponentMove = len(getValidMovesList(obsCap, -color))
+            actionVal = agentMove - opponentMove
+            return actionVal
+        
         def openRateDict(obs:dict, color) -> dict:
             validMovesDict = getValidMovesDict(obs, color)
             openRateDict = {}
@@ -186,7 +184,12 @@ class MyAgent(BaseAgent):
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
                 
-                if isOnSide(movek) and not isGoodSideMove(movek, colorNum):
+                if isOnSide(movek) and sideMoveLevel(movek, color, obs) == 5:
+                    validMovesDict.pop(movek, None)
+                    if validMovesDict == {}:
+                        validMovesDict[movek] = movev
+                
+                if isOnSide(movek) and sideMoveLevel(movek, color, obs) == 4:
                     validMovesDict.pop(movek, None)
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
@@ -207,11 +210,12 @@ class MyAgent(BaseAgent):
                 count = 0
                 for flip in validMovesDict[move]:
                     count += countOpenRate(flip, obs)
+                count -= actionCap(move, color) * 0.2
                 openRateDict[move] = count
             return openRateDict
         
         def hereIsPriority(obs, color):
-            possibleMoves = list(openRateDict(obs, color).keys())
+            possibleMoves = getValidMovesList(obs, color)
             # Corner position first
             for move in possibleMoves:
                 if isOnCorner(move):
@@ -219,7 +223,11 @@ class MyAgent(BaseAgent):
             
             # Side position next
             for move in possibleMoves:
-                if isGoodSideMove(move, colorNum):
+                if isOnSide(move) and sideMoveLevel(move, color, obs) == 1:
+                    return move
+                if isOnSide(move) and sideMoveLevel(move, color, obs) == 2:
+                    return move
+                if isOnSide(move) and sideMoveLevel(move, color, obs) == 3:
                     return move
             
             return False
@@ -420,12 +428,15 @@ class MyAgent(BaseAgent):
             
             # sorted with openrate
             sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
+            # print(sortedOpenRateDict)
             try: x, y = next(iter(sortedOpenRateDict))
             except StopIteration: return
             
             # priority move
-            if hereIsPriority(obsNew, colorNum):
-                x, y = hereIsPriority(obsNew, colorNum)
+            priorityMoves = hereIsPriority(obsNew, colorNum)
+            # print(priorityMoves)
+            if priorityMoves:
+                x, y = priorityMoves
             
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
@@ -445,15 +456,6 @@ class RandomAgent(BaseAgent):
         colorNum = colorDict[self.color]
         
         def transfer(obsDict:dict) -> dict:
-            '''
-            obsDict: dict
-                key: 0 ~ 63
-                val: [-1, 0, 1] (black, empty, white)
-            
-            return : dict
-                key: (x, y), where (7, 0) represents the top right
-                val: [-1, 0, 1] (black, empty, white)
-            '''
             return {(i % self.cols_n, i // self.cols_n):obsDict[i] for i in obsDict}
         
         obsNew=transfer(obs)    # new dictionary with 2D postion tuple keys
@@ -485,7 +487,8 @@ class RandomAgent(BaseAgent):
         
         possibleMoves = getValidMovesList(obsNew)
         random.shuffle(possibleMoves)
-        x, y = possibleMoves[0]
+        try: x, y = possibleMoves[0]
+        except: return
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
 class CornerAgent(BaseAgent):
@@ -497,15 +500,6 @@ class CornerAgent(BaseAgent):
         colorNum = colorDict[self.color]
         
         def transfer(obsDict:dict) -> dict:
-            '''
-            obsDict: dict
-                key: 0 ~ 63
-                val: [-1, 0, 1] (black, empty, white)
-            
-            return : dict
-                key: (x, y), where (7, 0) represents the top right
-                val: [-1, 0, 1] (black, empty, white)
-            '''
             return {(i % self.cols_n, i // self.cols_n):obsDict[i] for i in obsDict}
         
         obsNew=transfer(obs)    # new dictionary with 2D postion tuple keys
@@ -553,7 +547,8 @@ class CornerAgent(BaseAgent):
             if isBadMove(move, obsNew):
                 possibleMoves.remove(move)
                 possibleMoves.append(move)
-        x, y = possibleMoves[0]
+        try: x, y = possibleMoves[0]
+        except: return
         for move in possibleMoves:
             if isOnCorner(move):
                 x, y = move
@@ -565,3 +560,18 @@ class MyAgent1(MyAgent):
         self.depth=5
         self.method=1
     
+class MyAgent2(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 5
+        self.method=0
+    
+class MyAgent3(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 10
+    
+class MyAgent4(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 15

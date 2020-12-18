@@ -7,9 +7,10 @@ import utils
 import importlib
 import argparse
 from tqdm.auto import tqdm
+import copy
 
 def run_agent(agent: BaseAgent, reward: dict, obs: dict):
-    action, event_type = agent.step(reward, obs)
+    action, event_type = agent.step(copy.deepcopy(reward), copy.deepcopy(obs))
     reward = play_ground.act(action, event_type) # reward after an action
     return reward
 
@@ -57,10 +58,10 @@ def main(play_ground, agent1, agent2, rounds):
 
 
         if game.winner == -1:
-            print("winner is black", end=" | ")
+            print(" Winner is black", end=" | ")
             n_black_wins += 1
         if game.winner == 1:
-            print("winner is white", end=" | ")
+            print(" Winner is white", end=" | ")
         print('black', game.scores[-1], 'white', game.scores[1], end=" | ")
         print(f'rate {n_black_wins / (i+1):.2f}')
 
