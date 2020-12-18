@@ -7,8 +7,7 @@ class MyAgent(BaseAgent):
     
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth=10
-        self.method=0   # method == 0 -> ABPruning last depth steps ; method == 1 -> ABPruning depth every steps
+        self.depth=11
 
     def step(self, reward:dict, obs:dict) -> tuple:
         colorDict = {"black": -1, "white": 1, "empty": 0}
@@ -231,90 +230,10 @@ class MyAgent(BaseAgent):
                     return move
             
             return False
-        
-        def aßmaxNode(alpha, beta, height, color):
-            bestop, bestScore = [-1,-1], alpha
-            if height <= 0:
-                bestScore = isWinner(obsAB)
-                return bestop, bestScore
-            elif not getValidMovesDict(obsAB, color):
-                bestop, bestScore = aßminNode(alpha, beta, height-1, -color)
-                return  [-1,-1], bestScore
-            m = alpha
-            moves = getValidMovesDict(obsAB, color)
-            for move in moves:
-                flips = makeMove(color, move, obsAB)
-                _, score =aßminNode(m, beta, height-1, -color)
-
-                obsAB[move] = 0
-                otherTile = -color
-                for tile in flips:
-                    obsAB[tile] = otherTile
-
-                if score > m:
-                    m=score
-                    bestop = move[:]
-                    bestScore = m
-                if m >= beta:
-                    return bestop, bestScore
-                return bestop, bestScore
-        
-        def aßminNode(alpha, beta, height, color):
-            bestop, bestScore = [-1,-1], beta
-            if height <= 0:
-                bestScore = isWinner(obsAB)
-                return bestop, bestScore
-            elif not getValidMovesDict(obsAB, color):
-                bestop, bestScore = aßmaxNode(alpha, beta, height-1, -color)
-                return [-1,-1], bestScore
-            m = beta
-            moves = getValidMovesDict(obsAB, color)
-            for move in moves:
-                flips = makeMove(color, move, obsAB)
-                _, score = aßmaxNode(alpha, m, height-1, -color)
-
-                obsAB[move] = 0
-                otherTile = -color
-                for tile in flips:
-                    obsAB[tile] = otherTile
-
-                if score < m:
-                    m=score
-                    bestop = move[:]
-                    bestScore = m
-                if m <= alpha:
-                    return bestop, bestScore
-            return bestop, bestScore
-
-        def getStaticValue(obs,color):
-            sum=0
-            # by weight
-            for i in range(8):
-                for j in range(8):
-                    if (i>=2 and i<=5) and (j>=2 and j<=5):
-                        sum+=color*obs[(i,j)]*(-1)
-                    if ((i in (1,6)) and (j>=2 and j<=5) or (j in (1,6)) and (i>=2 and i<=5)):
-                        sum+=color*obs[(i,j)]*(-2)
-                    if ((i in (3,4)) and (j in (0,7)) or (j in (3,4)) and (i in (0,7))):
-                        sum+=color*obs[(i,j)]*5
-                    if ((i in (2,5)) and (j in (0,7)) or (j in (2,5)) and (i in (0,7))):
-                        sum+=color*obs[(i,j)]*10
-                    if ((i in (1,6)) and (j in (0,7)) or (j in (1,6)) and (i in (0,7))):
-                        sum+=color*obs[(i,j)]*(-20)
-                    if ((i,j) in ((0,0),(0,7),(7,0),(7,7))):
-                        sum+=color*obs[(i,j)]*100
-                    if ((i,j) in ((1,1),(1,6),(6,1),(6,6))):
-                        sum+=color*obs[(i,j)]*(-50)
-            # by score
-            score=isWinner(obs)
-            return sum
 
         def ABPruning(alpha,beta,depth,color,obs,maximize):
             if depth<=0:
-                if self.method == 0:
-                    return [-1,-1], isWinner(obs)
-                elif self.method == 1:
-                    return [-1,-1], getStaticValue(obs,color)
+                return [-1,-1], isWinner(obs)
             elif not getValidMovesDict(obs,color):
                 return [-1,-1],ABPruning(alpha,beta,depth-2,color,obs,maximize)[1]
             if maximize:
@@ -390,19 +309,6 @@ class MyAgent(BaseAgent):
                 print(minEval)
                 return bestOp, minEval
 
-        def getComputerMove(agentColor):
-            if agentColor == 1:
-                move, _ = aßmaxNode(-99, 99, self.depth, agentColor)
-            else:
-                move, _ = aßminNode(-99, 99, self.depth, agentColor)
-            return move
-        
-        def getComputerMoveN(agentColor,obs):
-            if agentColor == 1:
-                return ABPruning(-99,99,self.depth,agentColor,obs,True)[0]
-            else:
-                return ABPruning(-99,99,self.depth,agentColor,obs,False)[0]
-
         def countSteps(obs):
             step = 0
             for i in obs:
@@ -412,14 +318,14 @@ class MyAgent(BaseAgent):
         
         stepNum = countSteps(obsNew)
         
-        if stepNum == 5 and self.method==0:
+        if stepNum == 5:
             for move in [(2, 2), (5, 5)]:
                 if isValidMove(obsNew, move, colorNum):
                     x, y = move
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
         
-        elif stepNum <= 63-self.depth and self.method==0:
+        elif stepNum <= 63-self.depth:
             # rondom choice
             MovesDict = openRateDict(obsNew, colorNum)
             keys = list(MovesDict.keys())
@@ -442,9 +348,7 @@ class MyAgent(BaseAgent):
         
         else:
             obsAB = obsNew.copy()
-            #x, y = getComputerMove(colorNum)
             x,y=ABPruning(-float('inf'),float('inf'),self.depth,colorNum,obsAB,True)[0]
-            #x,y=miniMax(self.depth,colorNum,obsAB,True)[0]
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
 class RandomAgent(BaseAgent):
@@ -558,13 +462,11 @@ class MyAgent1(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
         self.depth=5
-        self.method=1
     
 class MyAgent2(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 5
-        self.method=0
+        self.depth = 8
     
 class MyAgent3(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
