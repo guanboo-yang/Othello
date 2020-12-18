@@ -7,8 +7,8 @@ class MyAgent(BaseAgent):
     
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 0
-    
+        self.depth=11
+
     def step(self, reward:dict, obs:dict) -> tuple:
         colorDict = {"black": -1, "white": 1, "empty": 0}
         colorNum = colorDict[self.color]
@@ -75,9 +75,9 @@ class MyAgent(BaseAgent):
         def left(move):
             return (move[0]-1, move[1])
         def up(move):
-            return (move[0], move[1]-1)
-        def down(move):
             return (move[0], move[1]+1)
+        def down(move):
+            return (move[0], move[1]-1)
         
         # Score a side move, 1 the priority and 5 the worst
         def sideMoveLevel(move, color, obs) -> int:
@@ -99,32 +99,17 @@ class MyAgent(BaseAgent):
                     for flip in flips:
                         if isOnSide(flip): return 1
                     else: return 3
-                # if sideMoveLevel(moves[0], -color, obsTemp) <= 2: return 5
                 if sideMoveLevel(moves[0], -color, obsTemp) <= 3: return 4
-                # if sideMoveLevel(moves[1], -color, obsTemp) <= 2: return 5
                 if sideMoveLevel(moves[1], -color, obsTemp) <= 3: return 4
                 else:
                     for flip in flips:
                         if isOnSide(flip): return 1
                     else: return 3
             else:
-                i = 1 if (obsTemp[func[0](moves[0])] == -color) else 0
+                i = 1 if obsTemp[func[0](moves[0])] == -color else 0
                 if isOnCorner(func[i](moves[i])): return 5
-                # if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) == 5): return 2
-                # if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 2): return 5
                 if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 3): return 4
                 else: return 3
-        
-        def cornerMoveLevel(move, color, obs):
-            obsTemp = obs.copy()
-            if obsTemp[move] != 0: return False
-            if move == (0, 0): funcs = [right, down]
-            if move == (7, 0): funcs = [down, left]
-            if move == (7, 7): funcs = [left, up]
-            if move == (0, 7): funcs = [up, right]
-            _ = makeMove(color, move, obsTemp)
-            
-            
         
         # X position
         def isBadMove(move, obs):
@@ -133,8 +118,6 @@ class MyAgent(BaseAgent):
             if move == (self.cols_n-2, 1) and obs[(self.cols_n-1, 0)] == 0: return True
             if move == (self.cols_n-2, self.rows_n-2) and obs[(self.cols_n-1, self.rows_n-1)] == 0: return True
             else: return False
-        # def isBadMove(move, obs):
-        #     return move[0] in {1, self.cols_n-2} and move[1] in {1, self.rows_n-2}
         
         # Get legal moves
         def getValidMovesDict(obs, color=colorNum) -> dict:
@@ -168,7 +151,7 @@ class MyAgent(BaseAgent):
             # if scores[-1] > scores[1]: return -1
             # elif scores[-1] < scores[1]: return 1
             # else: return 0
-            return scores[1] - scores[-1]
+            return scores[colorNum] - scores[-colorNum]
         
         # Action capability
         def actionCap(move, color):
@@ -236,12 +219,14 @@ class MyAgent(BaseAgent):
         # Priority moves
         def hereIsPriority(obs, color):
             possibleMoves = getValidMovesList(obs, color)
+            # Corner position first
+            for move in possibleMoves:
+                if isOnCorner(move):
+                    return move
             
-            # Corner position and side move
+            # Side position next
             for move in possibleMoves:
                 if isOnSide(move) and sideMoveLevel(move, color, obs) == 1:
-                    return move
-                if isOnCorner(move):
                     return move
                 if isOnSide(move) and sideMoveLevel(move, color, obs) == 2:
                     return move
@@ -250,6 +235,7 @@ class MyAgent(BaseAgent):
             
             return False
         
+        # AB Pruning
         def ABPruning(alpha,beta,depth,color,obs,maximize):
             if depth<=0:
                 return [-1,-1], isWinner(obs)
@@ -345,7 +331,7 @@ class MyAgent(BaseAgent):
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
         # Strategy first
-        elif stepNum <= (63 - self.depth):
+        elif stepNum <= 63-self.depth:
             # rondom choice
             MovesDict = openRateDict(obsNew, colorNum)
             keys = list(MovesDict.keys())
@@ -354,14 +340,12 @@ class MyAgent(BaseAgent):
             
             # sorted with openrate
             sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
-            
             # print(sortedOpenRateDict)
             try: x, y = next(iter(sortedOpenRateDict))
             except StopIteration: return
             
             # priority move
             priorityMoves = hereIsPriority(obsNew, colorNum)
-            
             # print(priorityMoves)
             if priorityMoves:
                 x, y = priorityMoves
@@ -370,9 +354,7 @@ class MyAgent(BaseAgent):
         
         else:
             obsAB = obsNew.copy()
-            #x, y = getComputerMove(colorNum)
             x,y=ABPruning(-float('inf'),float('inf'),self.depth,colorNum,obsAB,True)[0]
-            #x,y=miniMax(self.depth,colorNum,obsAB,True)[0]
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
 class RandomAgent(BaseAgent):
@@ -481,23 +463,23 @@ class CornerAgent(BaseAgent):
             if isOnCorner(move):
                 x, y = move
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
+
+class MyAgent1(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth=5
     
 class MyAgent2(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 0
-
+        self.depth = 8
+    
 class MyAgent3(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 5
+        self.depth = 10
     
 class MyAgent4(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 13
-
-class MyAgent6(MyAgent):
-    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
-        super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 0
+        self.depth = 15
