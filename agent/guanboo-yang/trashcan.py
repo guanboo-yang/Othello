@@ -94,3 +94,50 @@
         #         if obsTemp[func[1](move2)] == -color:
         #             if isGoodSideMove(func[0](move1), -color, obsTemp) or isOnCorner(func[0](move1)): return False
         #             else: return True
+# MINIMAX (unuse)
+        # def minimax(height, color, obs):
+        #     obsMM = obs.copy()
+        #     if color == -1:
+        #         bestOp, bestScore = (-1, -1), 99
+        #         if height <= 0:
+        #             bestScore = isWinner(obsMM)
+        #             return bestOp, bestScore
+        #         if not getValidMovesDict(obsMM, color) and not getValidMovesDict(obsMM, -color):
+        #             score = isWinner(obsMM)
+        #             return bestOp, score
+        #         if not getValidMovesDict(obsMM, color):
+        #             bestOp, bestScore = minimax(height, -color, obsMM)
+        #             return  (-1,-1), bestScore
+        #         if height == 1:
+        #             moves = getValidMovesDict(obsMM, color)
+        #             scoreList = []
+        #             for move in moves:
+        #                 _ = makeMove(color, move, obsMM)
+        #                 _, score = minimax(height-1, -color, obsMM)
+        #                 scoreList.append(score)
+        #             bestScore = sum(scoreList)/len(scoreList)
+        #             return bestOp, bestScore
+        #         moves = getValidMovesDict(obsMM, color)
+        #         for move in moves:
+        #             _ = makeMove(color, move, obsMM)
+        #             _, score = minimax(height-1, -color, obsMM)
+        #             if score < bestScore:
+        #                 bestScore = score
+        #                 bestOp = move[:]
+        #         return bestOp, bestScore
+        #     if color == 1:
+        #         bestOp, bestScore = (-1, -1), -99
+        #         if height <= 0:
+        #             bestScore = isWinner(obsMM)
+        #             return bestOp, bestScore
+        #         elif not getValidMovesDict(obsMM, color):
+        #             bestOp, bestScore = minimax(height-1, -color, obsMM)
+        #             return  (-1,-1), bestScore
+        #         moves = getValidMovesDict(obsMM, color)
+        #         for move in moves:
+        #             _ = makeMove(color, move, obsMM)
+        #             _, score = minimax(height-1, -color, obsMM)
+        #             if score > bestScore:
+        #                 bestScore = score
+        #                 bestOp = move[:]
+        #         return bestOp, bestScore

@@ -46,33 +46,35 @@ def sideMoveLevel(move, color, obs) -> int:
 
 obs =  {(0, 0):  0, (0, 1):  0, (0, 2):  1, (0, 3):  1, (0, 4):  0, (0, 5): -1, (0, 6): -1, (0, 7):  0, 
         (1, 0):  0, (1, 1):  0, (1, 2):  1, (1, 3): -1, (1, 4): -1, (1, 5):  0, (1, 6):  0, (1, 7):  0, 
-        (2, 0):  1, (2, 1):  1, (2, 2): -1, (2, 3): -1, (2, 4): -1, (2, 5):  1, (2, 6):  0, (2, 7):  0, 
+        (2, 0):  1, (2, 1):  1, (2, 2): -1, (2, 3): -1, (2, 4): -1, (2, 5):  1, (2, 6):  0, (2, 7): -1, 
         (3, 0):  0, (3, 1): -1, (3, 2): -1, (3, 3):  1, (3, 4): -1, (3, 5):  1, (3, 6):  0, (3, 7):  0, 
-        (4, 0): -1, (4, 1): -1, (4, 2): -1, (4, 3):  1, (4, 4):  1, (4, 5):  1, (4, 6):  0, (4, 7):  0, 
-        (5, 0): -1, (5, 1): -1, (5, 2):  1, (5, 3): -1, (5, 4):  1, (5, 5):  1, (5, 6): -1, (5, 7):  0, 
-        (6, 0): -1, (6, 1):  0, (6, 2):  1, (6, 3):  1, (6, 4): -1, (6, 5):  1, (6, 6):  1, (6, 7):  0, 
+        (4, 0): -1, (4, 1): -1, (4, 2): -1, (4, 3):  1, (4, 4):  1, (4, 5):  1, (4, 6):  0, (4, 7):  1, 
+        (5, 0): -1, (5, 1): -1, (5, 2):  1, (5, 3): -1, (5, 4):  1, (5, 5):  1, (5, 6): -1, (5, 7):  1, 
+        (6, 0): -1, (6, 1):  0, (6, 2):  1, (6, 3):  1, (6, 4): -1, (6, 5):  1, (6, 6):  1, (6, 7): -1, 
         (7, 0):  0, (7, 1): -1, (7, 2): -1, (7, 3):  0, (7, 4):  0, (7, 5):  0, (7, 6):  0, (7, 7):  0}
 
 def isStonerSide(obsIN, color):
-    obs = obsIN.copy()
-    move = (0, 0)
-    if obs[move] != 0: return False
-    # funcs = [right, left, up, down]
-    returnVal = right(down(move))
-    if obs[right(down(move))] != 0: return False
-    _ = makeMove(color, returnVal, obs)
-    if diagWithSameColor(obs, color, move):
-        moveEnd = (move[0], move[1]+7)
-        if obs[moveEnd] != 0: return False
-        moveEnd = up(moveEnd)
-        while obs[moveEnd] == -color: moveEnd = up(moveEnd)
-        if obs[moveEnd] == 0: moveEnd = up(moveEnd)
+    funcs = [right, down, up, left]
+    def stonerWrapper(obs, color, move, funcList):
+        obs = obsIN.copy()
+        move = (0, 0)
+        if obs[move] != 0: return False
+        returnVal = funcList[0](funcList[1](move))
+        if obs[funcList[0](funcList[1](move))] != 0: return False
+        _ = makeMove(color, returnVal, obs)
+        if diagWithSameColor(obs, color, move):
+            moveEnd = (move[0], move[1]+7)
+            if obs[moveEnd] != 0: return False
+            moveEnd = funcList[2](moveEnd)
+            while obs[moveEnd] == -color: moveEnd = funcList[2](moveEnd)
+            if obs[moveEnd] == 0: moveEnd = funcList[2](moveEnd)
+            else: return False
+            while obs[moveEnd] == color: moveEnd = funcList[2](moveEnd)
+            if obs[moveEnd] != 0: return False
+            if funcList[2](moveEnd) != move: return False
+            return returnVal
         else: return False
-        while obs[moveEnd] == color: moveEnd = up(moveEnd)
-        if obs[moveEnd] != 0: return False
-        if up(moveEnd) != move: return False
-        return returnVal
-    else: return False
+    stonerWrapper(obs, color, (0, 0), [right, down, up])
     
     
     # moves = [(0, 0), (0, 7), (7, 0), (7, 7)]
@@ -191,11 +193,11 @@ def pineapple(obs):
 def isOnBoard(x, y) -> bool:
     return 0 <= x < 8 and 0 <= y < 8
 
-# colorNum, x, y = [int(i) for i in input().split()]
-# print(sideMoveLevel((x, y), colorNum, obs))
+colorNum, x, y = [int(i) for i in input().split()]
+print(sideMoveLevel((x, y), colorNum, obs))
 
-colorNum = int(input())
-print(isStonerSide(obs, colorNum))
+# colorNum = int(input())
+# print(isStonerSide(obs, colorNum))
 
 
     #     if isOnCorner(moves[0]):

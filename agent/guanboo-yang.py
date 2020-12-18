@@ -7,8 +7,8 @@ class MyAgent(BaseAgent):
     
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 0
-        self.moveThis = ()
+        self.depth = 10
+        self.method = 0
     
     def step(self, reward:dict, obs:dict) -> tuple:
         colorDict = {"black": -1, "white": 1, "empty": 0}
@@ -115,6 +115,17 @@ class MyAgent(BaseAgent):
                 if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) == 3): return 4
                 if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 2): return 5
                 else: return 3
+        
+        # def cornerMoveLevel(move, color, obs):
+        #     obsTemp = obs.copy()
+        #     if obsTemp[move] != 0: return False
+        #     if move == (0, 0): funcs = [right, down]
+        #     if move == (7, 0): funcs = [down, left]
+        #     if move == (7, 7): funcs = [left, up]
+        #     if move == (0, 7): funcs = [up, right]
+        #     _ = makeMove(color, move, obsTemp)
+            
+            
         
         # X position
         def isBadMove(move, obs):
@@ -240,53 +251,86 @@ class MyAgent(BaseAgent):
             
             return False
         
-        # MINIMAX (unuse)
-        def minimax(height, color, obs):
-            obsMM = obs.copy()
-            if color == -1:
-                bestOp, bestScore = (-1, -1), 99
-                if height <= 0:
-                    bestScore = isWinner(obsMM)
-                    return bestOp, bestScore
-                if not getValidMovesDict(obsMM, color) and not getValidMovesDict(obsMM, -color):
-                    score = isWinner(obsMM)
-                    return bestOp, score
-                if not getValidMovesDict(obsMM, color):
-                    bestOp, bestScore = minimax(height-1, -color, obsMM)
-                    return  (-1,-1), bestScore
-                if height == 1:
-                    moves = getValidMovesDict(obsMM, color)
-                    scoreList = []
-                    for move in moves:
-                        _ = makeMove(color, move, obsMM)
-                        _, score = minimax(height-1, -color, obsMM)
-                        scoreList.append(score)
-                    bestScore = sum(scoreList)/len(scoreList)
-                    return bestOp, bestScore
-                moves = getValidMovesDict(obsMM, color)
+        def ABPruning(alpha,beta,depth,color,obs,maximize):
+            if depth<=0:
+                if self.method == 0:
+                    return [-1,-1], isWinner(obs)
+                elif self.method == 1:
+                    return [-1,-1], getStaticValue(obs,color)
+            elif not getValidMovesDict(obs,color):
+                return [-1,-1],ABPruning(alpha,beta,depth-2,color,obs,maximize)[1]
+            if maximize:
+                maxEval = -float('inf')
+                moves = getValidMovesDict(obs,color)
+                bestOp=[-1,-1]
                 for move in moves:
-                    _ = makeMove(color, move, obsMM)
-                    _, score = minimax(height-1, -color, obsMM)
-                    if score < bestScore:
-                        bestScore = score
+                    obsAB=obs.copy()
+                    flips=makeMove(color,move,obsAB)
+                    for toFlip in flips:
+                        obsAB[toFlip]=color
+                    evaluate=ABPruning(alpha,beta,depth-1,-color,obsAB,False)[1]
+                    # maxEval = max(maxEval, evaluatate)
+                    if evaluate>maxEval:
+                        maxEval = evaluate
                         bestOp = move[:]
-                return bestOp, bestScore
-            if color == 1:
-                bestOp, bestScore = (-1, -1), -99
-                if height <= 0:
-                    bestScore = isWinner(obsMM)
-                    return bestOp, bestScore
-                elif not getValidMovesDict(obsMM, color):
-                    bestOp, bestScore = minimax(height-1, -color, obsMM)
-                    return  (-1,-1), bestScore
-                moves = getValidMovesDict(obsMM, color)
+                    alpha=max(alpha,evaluate)
+                    if beta <= alpha:
+                        break
+                return bestOp,maxEval
+            else:
+                minEval = float('inf')
+                moves = getValidMovesDict(obs,color)
+                bestOp=[-1,-1]
                 for move in moves:
-                    _ = makeMove(color, move, obsMM)
-                    _, score = minimax(height-1, -color, obsMM)
-                    if score > bestScore:
-                        bestScore = score
+                    obsAB=obs.copy()
+                    flips=makeMove(color,move,obsAB)
+                    for toFlip in flips:
+                        obsAB[toFlip]=color
+                    evaluate=ABPruning(alpha,beta,depth-1,-color,obsAB,True)[1]
+                    if minEval>evaluate:
+                        minEval=evaluate
+                        bestOp=move[:]
+                    beta=min(beta,evaluate)
+                    if beta <= alpha:
+                        break
+                return bestOp, minEval
+
+        def miniMax(depth,color,obs,maximize):
+            if depth<=0:
+                return [-1,-1], isWinner(obs)
+            elif not getValidMovesDict(obs,color):
+                return [-1,-1],miniMax(depth-2,color,obs,maximize)[1]
+            if maximize:
+                maxEval = -float('inf')
+                moves = getValidMovesDict(obs,color)
+                bestOp=[-1,-1]
+                for move in moves:
+                    obsAB=obs.copy()
+                    flips=makeMove(color,move,obsAB)
+                    for toFlip in flips:
+                        obsAB[toFlip]=color
+                    evaluate=miniMax(depth-1,-color,obsAB,False)[1]
+                    # maxEval = max(maxEval, evaluatate)
+                    if evaluate>maxEval:
+                        maxEval = evaluate
                         bestOp = move[:]
-                return bestOp, bestScore
+                print(maxEval)
+                return bestOp,maxEval
+            else:
+                minEval = float('inf')
+                moves = getValidMovesDict(obs,color)
+                bestOp=[-1,-1]
+                for move in moves:
+                    obsAB=obs.copy()
+                    flips=makeMove(color,move,obsAB)
+                    for toFlip in flips:
+                        obsAB[toFlip]=color
+                    evaluate=miniMax(depth-1,-color,obsAB,True)[1]
+                    if minEval>evaluate:
+                        minEval=evaluate
+                        bestOp=move[:]
+                print(minEval)
+                return bestOp, minEval
         
         # How far we go
         def countSteps(obs):
@@ -328,11 +372,12 @@ class MyAgent(BaseAgent):
             
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
-        # MINIMAX last (0 for now)
         else:
-            x, y = minimax(self.depth, colorNum, obsNew)[0]
+            obsAB = obsNew.copy()
+            #x, y = getComputerMove(colorNum)
+            x,y=ABPruning(-float('inf'),float('inf'),self.depth,colorNum,obsAB,True)[0]
+            #x,y=miniMax(self.depth,colorNum,obsAB,True)[0]
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
-# TODO: MAKE A BETTER MINIMAX!!!!!!
 
 class RandomAgent(BaseAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
@@ -455,3 +500,9 @@ class MyAgent4(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
         self.depth = 13
+
+class MyAgent6(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth = 5
+        self.method = 0
