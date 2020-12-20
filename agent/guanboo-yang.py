@@ -7,29 +7,24 @@ class MyAgent(BaseAgent):
     
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 0
-    
+        self.depth=11
+
     def step(self, reward:dict, obs:dict) -> tuple:
         colorDict = {"black": -1, "white": 1, "empty": 0}
         colorNum = colorDict[self.color]
         
+        # Change position: int to tuple
         def transfer(obsDict:dict) -> dict:
-            '''
-            obsDict: dict
-                key: 0 ~ 63
-                val: [-1, 0, 1] (black, empty, white)
-            
-            return : dict
-                key: (x, y), where (7, 0) represents the top right
-                val: [-1, 0, 1] (black, empty, white)
-            '''
             return {(i % self.cols_n, i // self.cols_n):obsDict[i] for i in obsDict}
         
-        obsNew=transfer(obs)    # new dictionary with 2D postion tuple keys
+        # New dict with 'tuple' keys
+        obsNew=transfer(obs)
         
+        # If the disk is on the board
         def isOnBoard(x, y) -> bool:
             return 0 <= x < self.cols_n and 0 <= y < self.rows_n
         
+        # If the move is legal
         def isValidMove(obs:dict, move: tuple, color=colorNum) -> list:
             if not isOnBoard(move[0], move[1]) or obs[(move[0], move[1])] != 0:
                 return []
@@ -49,6 +44,7 @@ class MyAgent(BaseAgent):
             obs[(move[0], move[1])] = 0
             return tilesToFlip
         
+        # Make move
         def makeMove(color, move, obs):
             tilesToFlip = isValidMove(obs, move, color)
             if tilesToFlip:
@@ -57,6 +53,7 @@ class MyAgent(BaseAgent):
                     obs[tile] = color
             return tilesToFlip
         
+        # Make fake move (no flipping disk): used to determine side move
         def fakeMakeMove(color, move, obs):
             tilesToFlip = isValidMove(obs, move, color)
             obs[move] = color
@@ -82,6 +79,7 @@ class MyAgent(BaseAgent):
         def down(move):
             return (move[0], move[1]-1)
         
+        # Score a side move, 1 the priority and 5 the worst
         def sideMoveLevel(move, color, obs) -> int:
             obsTemp = obs.copy()
             if obsTemp[move] != 0: return False
@@ -101,7 +99,9 @@ class MyAgent(BaseAgent):
                     for flip in flips:
                         if isOnSide(flip): return 1
                     else: return 3
+                if sideMoveLevel(moves[0], -color, obsTemp) <= 2: return 5
                 if sideMoveLevel(moves[0], -color, obsTemp) <= 3: return 4
+                if sideMoveLevel(moves[1], -color, obsTemp) <= 2: return 5
                 if sideMoveLevel(moves[1], -color, obsTemp) <= 3: return 4
                 else:
                     for flip in flips:
@@ -110,7 +110,9 @@ class MyAgent(BaseAgent):
             else:
                 i = 1 if obsTemp[func[0](moves[0])] == -color else 0
                 if isOnCorner(func[i](moves[i])): return 5
+                if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 2): return 5
                 if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 3): return 4
+                if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) == 5): return 2
                 else: return 3
         
         # X position
@@ -120,16 +122,16 @@ class MyAgent(BaseAgent):
             if move == (self.cols_n-2, 1) and obs[(self.cols_n-1, 0)] == 0: return True
             if move == (self.cols_n-2, self.rows_n-2) and obs[(self.cols_n-1, self.rows_n-1)] == 0: return True
             else: return False
-        # def isBadMove(move, obs):
-        #     return move[0] in {1, self.cols_n-2} and move[1] in {1, self.rows_n-2}
         
-        
+        # Get legal moves
         def getValidMovesDict(obs, color=colorNum) -> dict:
             return {(x, y):isValidMove(obs, (x, y), color) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y), color)}
         
+        # Get legal moves
         def getValidMovesList(obs, color=colorNum) -> list:
             return [(x, y) for x in range(self.cols_n) for y in range(self.rows_n) if isValidMove(obs, (x, y), color)]
         
+        # Count OPEN RATE
         def countOpenRate(flip:tuple, obs:dict) -> int:
             count = 0
             dirs = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]]
@@ -139,6 +141,7 @@ class MyAgent(BaseAgent):
                     count += 1
             return count
         
+        # Get score (for MINIMAX)
         def getScoreOfBoard(obs) -> dict:
             scores = {-1:0, 1:0}
             for i in obs:
@@ -146,13 +149,15 @@ class MyAgent(BaseAgent):
                     scores[obs[i]] += 1
             return scores
         
+        # Calculate how many one wins (for MINIMAX)
         def isWinner(obs) -> int:
             scores = getScoreOfBoard(obs)
             # if scores[-1] > scores[1]: return -1
             # elif scores[-1] < scores[1]: return 1
             # else: return 0
-            return scores[1] - scores[-1]
+            return scores[colorNum] - scores[-colorNum]
         
+        # Action capability
         def actionCap(move, color):
             obsCap = obsNew.copy()
             _ = makeMove(color, move, obsCap)
@@ -161,6 +166,7 @@ class MyAgent(BaseAgent):
             actionVal = agentMove - opponentMove
             return actionVal
         
+        # Moves dict with keys replaced by OPENRATE and ACTIONCAP
         def openRateDict(obs:dict, color) -> dict:
             validMovesDict = getValidMovesDict(obs, color)
             openRateDict = {}
@@ -183,11 +189,11 @@ class MyAgent(BaseAgent):
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
                 
+                # Bad side move
                 if isOnSide(movek) and sideMoveLevel(movek, color, obs) == 5:
                     validMovesDict.pop(movek, None)
                     if validMovesDict == {}:
                         validMovesDict[movek] = movev
-                
                 if isOnSide(movek) and sideMoveLevel(movek, color, obs) == 4:
                     validMovesDict.pop(movek, None)
                     if validMovesDict == {}:
@@ -205,6 +211,7 @@ class MyAgent(BaseAgent):
                         if validMovesDict == {}:
                             validMovesDict[movek] = movev
             
+            # Make new dict
             for move in validMovesDict:
                 count = 0
                 for flip in validMovesDict[move]:
@@ -213,6 +220,7 @@ class MyAgent(BaseAgent):
                 openRateDict[move] = count
             return openRateDict
         
+        # Priority moves
         def hereIsPriority(obs, color):
             possibleMoves = getValidMovesList(obs, color)
             # Corner position first
@@ -231,58 +239,66 @@ class MyAgent(BaseAgent):
             
             return False
         
-        def minimax(height, color, obs):
-            obsMM = obs.copy()
-            if color == -1:
-                bestOp, bestScore = (-1, -1), 99
-                if height <= 0:
-                    bestScore = isWinner(obsMM)
-                    return bestOp, bestScore
-                elif not getValidMovesDict(obsMM, color):
-                    bestOp, bestScore = minimax(height-1, -color, obsMM)
-                    return  (-1,-1), bestScore
-                moves = getValidMovesDict(obsMM, color)
+        # AB Pruning
+        def ABPruning(alpha,beta,depth,color,obs,maximize):
+            if depth<=0:
+                return [-1,-1], isWinner(obs)
+            elif not getValidMovesDict(obs,color):
+                return [-1,-1],ABPruning(alpha,beta,depth-2,color,obs,maximize)[1]
+            if maximize:
+                maxEval = -float('inf')
+                moves = getValidMovesDict(obs,color)
+                bestOp=[-1,-1]
                 for move in moves:
-                    _ = makeMove(color, move, obsMM)
-                    _, score = minimax(height-1, -color, obsMM)
-                    if score < bestScore:
-                        bestScore = score
+                    obsAB=obs.copy()
+                    flips=makeMove(color,move,obsAB)
+                    for toFlip in flips:
+                        obsAB[toFlip]=color
+                    evaluate=ABPruning(alpha,beta,depth-1,-color,obsAB,False)[1]
+                    # maxEval = max(maxEval, evaluatate)
+                    if evaluate>maxEval:
+                        maxEval = evaluate
                         bestOp = move[:]
-                return bestOp, bestScore
-            if color == 1:
-                bestOp, bestScore = (-1, -1), -99
-                if height <= 0:
-                    bestScore = isWinner(obsMM)
-                    return bestOp, bestScore
-                elif not getValidMovesDict(obsMM, color):
-                    bestOp, bestScore = minimax(height-1, -color, obsMM)
-                    return  (-1,-1), bestScore
-                moves = getValidMovesDict(obsMM, color)
+                    alpha=max(alpha,evaluate)
+                    if beta <= alpha:
+                        break
+                return bestOp,maxEval
+            else:
+                minEval = float('inf')
+                moves = getValidMovesDict(obs,color)
+                bestOp=[-1,-1]
                 for move in moves:
-                    _ = makeMove(color, move, obsMM)
-                    _, score = minimax(height-1, -color, obsMM)
-                    if score > bestScore:
-                        bestScore = score
-                        bestOp = move[:]
-                return bestOp, bestScore
-        
+                    obsAB=obs.copy()
+                    flips=makeMove(color,move,obsAB)
+                    for toFlip in flips:
+                        obsAB[toFlip]=color
+                    evaluate=ABPruning(alpha,beta,depth-1,-color,obsAB,True)[1]
+                    if minEval>evaluate:
+                        minEval=evaluate
+                        bestOp=move[:]
+                    beta=min(beta,evaluate)
+                    if beta <= alpha:
+                        break
+                return bestOp, minEval
+
+        # How far we go
         def countSteps(obs):
             step = 0
             for i in obs:
                 if obs[i] != 0:
                     step += 1
             return step
-        
         stepNum = countSteps(obsNew)
         
+        # Good start, win half
         if stepNum == 5:
             for move in [(2, 2), (5, 5)]:
                 if isValidMove(obsNew, move, colorNum):
                     x, y = move
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
-        
-        elif stepNum <= (63 - self.depth):
+        # Strategy first
+        elif stepNum <= 63-self.depth:
             # rondom choice
             MovesDict = openRateDict(obsNew, colorNum)
             keys = list(MovesDict.keys())
@@ -304,9 +320,9 @@ class MyAgent(BaseAgent):
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
         
         else:
-            x, y = minimax(self.depth, colorNum, obsNew)[0]
+            obsAB = obsNew.copy()
+            x,y=ABPruning(-float('inf'),float('inf'),self.depth,colorNum,obsAB,True)[0]
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
-
 
 class RandomAgent(BaseAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
@@ -415,10 +431,15 @@ class CornerAgent(BaseAgent):
                 x, y = move
         return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
+class MyAgent1(MyAgent):
+    def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
+        super().__init__(color, rows_n, cols_n, width, height)
+        self.depth=5
+    
 class MyAgent2(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
         super().__init__(color, rows_n, cols_n, width, height)
-        self.depth = 5
+        self.depth = 8
     
 class MyAgent3(MyAgent):
     def __init__(self, color = "black", rows_n = 8, cols_n = 8, width = 600, height = 600):
