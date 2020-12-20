@@ -45,7 +45,7 @@ def sideMoveLevel(move, color, obs) -> int:
         else: return 3
 
 obs =  {(0, 0):  0, (0, 1):  0, (0, 2):  1, (0, 3):  1, (0, 4):  0, (0, 5): -1, (0, 6): -1, (0, 7):  0, 
-        (1, 0):  0, (1, 1):  0, (1, 2):  1, (1, 3): -1, (1, 4): -1, (1, 5):  0, (1, 6):  0, (1, 7):  0, 
+        (1, 0):  0, (1, 1):  0, (1, 2): -1, (1, 3): -1, (1, 4):  1, (1, 5): -1, (1, 6):  0, (1, 7):  0, 
         (2, 0):  1, (2, 1):  1, (2, 2): -1, (2, 3): -1, (2, 4): -1, (2, 5):  1, (2, 6):  0, (2, 7): -1, 
         (3, 0):  0, (3, 1): -1, (3, 2): -1, (3, 3):  1, (3, 4): -1, (3, 5):  1, (3, 6):  0, (3, 7):  0, 
         (4, 0): -1, (4, 1): -1, (4, 2): -1, (4, 3):  1, (4, 4):  1, (4, 5):  1, (4, 6):  0, (4, 7):  1, 
@@ -54,16 +54,18 @@ obs =  {(0, 0):  0, (0, 1):  0, (0, 2):  1, (0, 3):  1, (0, 4):  0, (0, 5): -1, 
         (7, 0):  0, (7, 1): -1, (7, 2): -1, (7, 3):  0, (7, 4):  0, (7, 5):  0, (7, 6):  0, (7, 7):  0}
 
 def isStonerSide(obsIN, color):
-    funcs = [right, down, up, left]
     def stonerWrapper(obs, color, move, funcList):
         obs = obsIN.copy()
-        move = (0, 0)
         if obs[move] != 0: return False
         returnVal = funcList[0](funcList[1](move))
+        if not isValidMove(obs, returnVal, color): return False
         if obs[funcList[0](funcList[1](move))] != 0: return False
         _ = makeMove(color, returnVal, obs)
+        if funcList[1](move) not in getValidMovesDict(obs, -color): return False
+        print(getValidMovesDict(obs, -color)[funcList[1](move)])
+        if not any(returnVal in sublist for sublist in getValidMovesDict(obs, -color)[funcList[1](move)]): return False
         if diagWithSameColor(obs, color, move):
-            moveEnd = (move[0], move[1]+7)
+            moveEnd = funcList[1](funcList[1](funcList[1](funcList[1](funcList[1](funcList[1](funcList[1](move)))))))
             if obs[moveEnd] != 0: return False
             moveEnd = funcList[2](moveEnd)
             while obs[moveEnd] == -color: moveEnd = funcList[2](moveEnd)
@@ -74,8 +76,20 @@ def isStonerSide(obsIN, color):
             if funcList[2](moveEnd) != move: return False
             return returnVal
         else: return False
-    stonerWrapper(obs, color, (0, 0), [right, down, up])
-    
+    Xlist = []
+    Xlist.append(stonerWrapper(obs, color, (0, 0), [right, down, up]))
+    Xlist.append(stonerWrapper(obs, color, (0, 0), [down, right, left]))
+    Xlist.append(stonerWrapper(obs, color, (7, 0), [down, left, right]))
+    Xlist.append(stonerWrapper(obs, color, (7, 0), [left, down, up]))
+    Xlist.append(stonerWrapper(obs, color, (7, 7), [left, up, down]))
+    Xlist.append(stonerWrapper(obs, color, (7, 7), [up, left, right]))
+    Xlist.append(stonerWrapper(obs, color, (0, 7), [up, right, left]))
+    Xlist.append(stonerWrapper(obs, color, (0, 7), [right, up, down]))
+    # print(Xlist)
+    for move in Xlist:
+        if move != False:
+            return move
+    else: return False
     
     # moves = [(0, 0), (0, 7), (7, 0), (7, 7)]
     # funcs = [[right, down], [right, up], [left, down], [left, up]]
@@ -124,11 +138,15 @@ def isStonerSide(obsIN, color):
 
 # pine(obs)
 
+# Get legal moves
+def getValidMovesDict(obs, color) -> dict:
+    return {(x, y):isValidMove(obs, (x, y), color) for x in range(8) for y in range(8) if isValidMove(obs, (x, y), color)}
+
 def diagWithSameColor(obs, color, move):
     if move[0] == move[1]:
-        return all(obs[(x, y)] == color for x in range(1, 7) for y in range(1, 7) if x == y)
+        return all(obs[(x, y)] != -color for x in range(1, 7) for y in range(1, 7) if x == y)
     if move[0] + move[1] == 7:
-        return all(obs[(x, y)] == color for x in range(1, 7) for y in range(1, 7) if x + y == 7)
+        return all(obs[(x, y)] != -color for x in range(1, 7) for y in range(1, 7) if x + y == 7)
 
 def makeMove(color, move, obs):
     tilesToFlip = isValidMove(obs, move, color)
@@ -193,11 +211,11 @@ def pineapple(obs):
 def isOnBoard(x, y) -> bool:
     return 0 <= x < 8 and 0 <= y < 8
 
-colorNum, x, y = [int(i) for i in input().split()]
-print(sideMoveLevel((x, y), colorNum, obs))
+# colorNum, x, y = [int(i) for i in input().split()]
+# print(sideMoveLevel((x, y), colorNum, obs))
 
-# colorNum = int(input())
-# print(isStonerSide(obs, colorNum))
+colorNum = int(input())
+print(isStonerSide(obs, colorNum))
 
 
     #     if isOnCorner(moves[0]):

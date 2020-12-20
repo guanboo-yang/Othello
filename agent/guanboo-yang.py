@@ -99,7 +99,9 @@ class MyAgent(BaseAgent):
                     for flip in flips:
                         if isOnSide(flip): return 1
                     else: return 3
+                if sideMoveLevel(moves[0], -color, obsTemp) <= 2: return 5
                 if sideMoveLevel(moves[0], -color, obsTemp) <= 3: return 4
+                if sideMoveLevel(moves[1], -color, obsTemp) <= 2: return 5
                 if sideMoveLevel(moves[1], -color, obsTemp) <= 3: return 4
                 else:
                     for flip in flips:
@@ -108,7 +110,9 @@ class MyAgent(BaseAgent):
             else:
                 i = 1 if obsTemp[func[0](moves[0])] == -color else 0
                 if isOnCorner(func[i](moves[i])): return 5
+                if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 2): return 5
                 if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) <= 3): return 4
+                if (sideMoveLevel(func[i](moves[i]), -color, obsTemp) == 5): return 2
                 else: return 3
         
         # X position
@@ -277,43 +281,6 @@ class MyAgent(BaseAgent):
                         break
                 return bestOp, minEval
 
-        def miniMax(depth,color,obs,maximize):
-            if depth<=0:
-                return [-1,-1], isWinner(obs)
-            elif not getValidMovesDict(obs,color):
-                return [-1,-1],miniMax(depth-2,color,obs,maximize)[1]
-            if maximize:
-                maxEval = -float('inf')
-                moves = getValidMovesDict(obs,color)
-                bestOp=[-1,-1]
-                for move in moves:
-                    obsAB=obs.copy()
-                    flips=makeMove(color,move,obsAB)
-                    for toFlip in flips:
-                        obsAB[toFlip]=color
-                    evaluate=miniMax(depth-1,-color,obsAB,False)[1]
-                    # maxEval = max(maxEval, evaluatate)
-                    if evaluate>maxEval:
-                        maxEval = evaluate
-                        bestOp = move[:]
-                print(maxEval)
-                return bestOp,maxEval
-            else:
-                minEval = float('inf')
-                moves = getValidMovesDict(obs,color)
-                bestOp=[-1,-1]
-                for move in moves:
-                    obsAB=obs.copy()
-                    flips=makeMove(color,move,obsAB)
-                    for toFlip in flips:
-                        obsAB[toFlip]=color
-                    evaluate=miniMax(depth-1,-color,obsAB,True)[1]
-                    if minEval>evaluate:
-                        minEval=evaluate
-                        bestOp=move[:]
-                print(minEval)
-                return bestOp, minEval
-        
         # How far we go
         def countSteps(obs):
             step = 0
