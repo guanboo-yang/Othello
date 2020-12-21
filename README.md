@@ -28,6 +28,8 @@ rate: (RandomAgent) (CornerAgent)
     - v1.4.2: Add more side position rules (rate: 99) (rate: 91)
 - v1.5: We fix ab pruning problems
     - v1.5.1: Final
+    - v1.5.2: Final 2
+    - v1.5.3: Final 3
 
 ---
 
