@@ -167,7 +167,7 @@ class MyAgent(BaseAgent):
             return actionVal
         
         # Moves dict with keys replaced by OPENRATE and ACTIONCAP
-        def openRateDict(obs:dict, color) -> dict:
+        def openRateDict(obs:dict, color, val) -> dict:
             validMovesDict = getValidMovesDict(obs, color)
             openRateDict = {}
             
@@ -216,7 +216,7 @@ class MyAgent(BaseAgent):
                 count = 0
                 for flip in validMovesDict[move]:
                     count += countOpenRate(flip, obs)
-                count -= actionCap(move, color) * 0.2
+                count -= actionCap(move, color) * val
                 openRateDict[move] = count
             return openRateDict
         
@@ -298,9 +298,30 @@ class MyAgent(BaseAgent):
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
         # Strategy first
+        elif stepNum <= 20:
+            # rondom choice
+            MovesDict = openRateDict(obsNew, colorNum, 2)
+            keys = list(MovesDict.keys())
+            random.shuffle(keys)
+            randomDict = {key:MovesDict[key] for key in keys}
+            
+            # sorted with openrate
+            sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
+            # print(sortedOpenRateDict)
+            try: x, y = next(iter(sortedOpenRateDict))
+            except StopIteration: return
+            
+            # priority move
+            priorityMoves = hereIsPriority(obsNew, colorNum)
+            # print(priorityMoves)
+            if priorityMoves:
+                x, y = priorityMoves
+            
+            return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
+        
         elif stepNum <= 63-self.depth:
             # rondom choice
-            MovesDict = openRateDict(obsNew, colorNum)
+            MovesDict = openRateDict(obsNew, colorNum, 0.2)
             keys = list(MovesDict.keys())
             random.shuffle(keys)
             randomDict = {key:MovesDict[key] for key in keys}
