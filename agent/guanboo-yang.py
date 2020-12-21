@@ -298,30 +298,9 @@ class MyAgent(BaseAgent):
             return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
 
         # Strategy first
-        elif stepNum <= 20:
-            # rondom choice
-            MovesDict = openRateDict(obsNew, colorNum, 2)
-            keys = list(MovesDict.keys())
-            random.shuffle(keys)
-            randomDict = {key:MovesDict[key] for key in keys}
-            
-            # sorted with openrate
-            sortedOpenRateDict = {k:v for k, v in sorted(randomDict.items(), key=lambda x: x[1])}
-            # print(sortedOpenRateDict)
-            try: x, y = next(iter(sortedOpenRateDict))
-            except StopIteration: return
-            
-            # priority move
-            priorityMoves = hereIsPriority(obsNew, colorNum)
-            # print(priorityMoves)
-            if priorityMoves:
-                x, y = priorityMoves
-            
-            return (self.col_offset + x * self.block_len, self.row_offset + y * self.block_len), pygame.USEREVENT
-        
         elif stepNum <= 63-self.depth:
             # rondom choice
-            MovesDict = openRateDict(obsNew, colorNum, 0.2)
+            MovesDict = openRateDict(obsNew, colorNum, 0.2 + (63-self.depth-stepNum) * 0.1)
             keys = list(MovesDict.keys())
             random.shuffle(keys)
             randomDict = {key:MovesDict[key] for key in keys}
