@@ -31,11 +31,11 @@ def main(play_ground, agent1, agent2, rounds):
                         reward1 = run_agent(agent1, reward1, obs)
                         if reward1[-1] != 0:
                             break
-                    except (utils.ValueOutOfRange, utils.InvalidAction) as e:
-                        # print("invalid action! retry!")
+                    except (utils.ValueOutOfRange, utils.InvalidAction):
+                        print("invalid action! retry!")
                         pass
                     except (utils.NoAvailableAction, TypeError):
-                        # print("ignore black action")
+                        print("ignore black action")
                         run_iter += 1
                         break
             else:
@@ -45,11 +45,11 @@ def main(play_ground, agent1, agent2, rounds):
                         reward2 = run_agent(agent2, reward2, obs)
                         if reward2[1] != 0:
                             break
-                    except (utils.ValueOutOfRange, utils.InvalidAction) as e:
-                        # print("invalid action! retry!") 
+                    except (utils.ValueOutOfRange, utils.InvalidAction):
+                        print("invalid action! retry!") 
                         pass
                     except (utils.NoAvailableAction, TypeError):
-                        # print("ignore white action")
+                        print("ignore white action")
                         run_iter += 1
                         break
             run_iter += 1 
